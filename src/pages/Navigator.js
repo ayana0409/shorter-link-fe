@@ -12,6 +12,7 @@ const Navigator = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
+        console.log("Fetching original URL for shortLink:", shortLink);
         get("shortener/" + shortLink)
             .then((response) => {
                 console.log(response);
@@ -38,7 +39,8 @@ const Navigator = () => {
             return () => clearInterval(timer);
         }
     }, [countdown, navigate]);
-
+    console.log("shortLink:", shortLink);
+    console.log("current path:", window.location.pathname);
     return (
         <PageWrapper
             title="Đang chuyển hướng"
