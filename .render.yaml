@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: shorter-link-fe
+    name: shink
     env: node
     buildCommand: npm install && npm run build
     startCommand: npm run start:render
