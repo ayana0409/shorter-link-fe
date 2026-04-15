@@ -1,7 +1,7 @@
 services:
-  - type: static
+  - type: web
     name: shorter-link-fe
-    env: static
+    env: node
     buildCommand: npm install && npm run build
-    publishPath: build
+    startCommand: npm run start
     nodeVersion: 20.24.0
