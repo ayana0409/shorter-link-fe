@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 import { getTokenWithExpiry, getTokenRole } from "../constants/localStorage";
 import PageWrapper from "../components/PageWrapper";
 
+const clientUrl = (process.env.REACT_APP_CLIENT_URL || window.location.origin).replace(/\/$/, '');
+
 const CreateLink = () => {
   const [originalLink, setOriginalLink] = useState("");
   const [shortLink, setShortLink] = useState("");
@@ -86,7 +88,7 @@ const CreateLink = () => {
       .then((response) => {
         console.log(response);
         if (response?.shortUrl) {
-          setShortLink("http://localhost:3000/" + response.shortUrl);
+          setShortLink(`${clientUrl}/${response.shortUrl}`);
           toast.success("Tạo liên kết thành công!");
           refreshLinks();
         } else {
@@ -329,14 +331,18 @@ const CreateLink = () => {
                     <tbody className="divide-y divide-slate-200">
                       {paginatedLinks.map((link) => (
                         <tr key={link._id} className="hover:bg-slate-50">
-                          <td className="px-4 py-3">{link.siteName ?? 'Không rõ'}</td>
+                          <td className="px-4 py-3">
+                            <span title={link.originalUrl} className="cursor-help underline decoration-dotted">
+                              {link.siteName ?? 'Không rõ'}
+                            </span>
+                          </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <span className="truncate">localhost:3000/{link.shortUrl}</span>
+                              <span className="truncate">{clientUrl}/{link.shortUrl}</span>
                               <button
                                 onClick={() => {
                                   if (navigator.clipboard) {
-                                    navigator.clipboard.writeText(`http://localhost:3000/${link.shortUrl}`);
+                                    navigator.clipboard.writeText(`${clientUrl}/${link.shortUrl}`);
                                     toast.success('Đã sao chép link rút gọn');
                                   }
                                 }}

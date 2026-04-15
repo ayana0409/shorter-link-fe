@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 import { getTokenPayload, getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
 import PageWrapper from '../../components/PageWrapper';
 
+const clientUrl = (process.env.REACT_APP_CLIENT_URL || window.location.origin).replace(/\/$/, '');
+
 const AccountDetailPage = () => {
     const { id } = useParams();
     const [account, setAccount] = useState(null);
@@ -414,7 +416,7 @@ const AccountDetailPage = () => {
                                                 {link.siteName ?? 'Không rõ'}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3">localhost:3000/{link.shortUrl}</td>
+                                        <td className="px-4 py-3">{clientUrl}/{link.shortUrl}</td>
                                         <td className="px-4 py-3">{link.clicks ?? 0}</td>
                                         <td className="px-4 py-3">{getLinkStatus(link)}</td>
                                         <td className="px-4 py-3">{link.expiresAt ? new Date(link.expiresAt).toLocaleString() : 'Không có'}</td>
