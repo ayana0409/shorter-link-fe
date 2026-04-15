@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getTokenWithExpiry } from "../constants/localStorage";
+import { getTokenWithExpiry, removeToken } from "../constants/localStorage";
 
 const getToken = () => {
     return getTokenWithExpiry();
@@ -31,10 +31,16 @@ request.interceptors.response.use(
     error => {
         if (error.response) {
             const status = error.response.status;
-            if (status === 401 || status === 403) {
-                console.log(status);
-
-                //window.location.href = '/';
+            const rawMessage = error.response.data?.message;
+            const message = Array.isArray(rawMessage)
+                ? rawMessage.join(' ')
+                : String(rawMessage || '');
+            if (status === 403 && /khóa|locked|bị khóa/i.test(message)) {
+                removeToken();
+                window.location.href = '/locked';
+            }
+            if (status === 401) {
+                removeToken();
             }
         }
         return Promise.reject(error);

@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Navigator from "../pages/Navigator";
 import NotFountOrExpire from "../pages/NotFoundOrExpire";
+import AccountLocked from "../pages/AccountLocked";
 import CreateLink from "../pages/CreateLink";
 import { RegisterPage } from "../pages/accounts";
 import { LoginPage } from "../pages/auth";
@@ -11,6 +12,7 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<Navigate to="/home" replace />} />
       <Route path="/not-found" element={<NotFountOrExpire />} />
+      <Route path="/locked" element={<AccountLocked />} />
       <Route path="/home" element={<CreateLink />} />
       <Route path="/admin" element={<AdminPage />} />
       <Route path="/admin/:id" element={<AccountDetailPage />} />

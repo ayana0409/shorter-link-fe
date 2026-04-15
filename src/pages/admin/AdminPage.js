@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { get, post } from '../../utils/request';
+import { get, post, patch } from '../../utils/request';
 import toast from 'react-hot-toast';
-import { getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
+import { getTokenPayload, getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
 import PageWrapper from '../../components/PageWrapper';
 
 const AdminPage = () => {
@@ -12,6 +12,7 @@ const AdminPage = () => {
     const [sortOrder, setSortOrder] = useState('desc');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [statusUpdatingId, setStatusUpdatingId] = useState(null);
     const pageSize = 5;
     const [newAccount, setNewAccount] = useState({
         username: '',
@@ -40,11 +41,36 @@ const AdminPage = () => {
                 loadAccounts(1);
             })
             .catch((error) => {
-                const message = error.response?.data?.error?.message || 'Không thể tạo tài khoản';
+                const message = error.response?.data?.message || 'Không thể tạo tài khoản';
                 toast.error(message);
             })
             .finally(() => {
                 setIsCreating(false);
+            });
+    };
+
+    const toggleAccountStatus = (account) => {
+        const currentUser = getTokenPayload();
+        if (currentUser?._id === account._id || currentUser?.username === account.username) {
+            toast.error('Không thể khóa tài khoản đang đăng nhập');
+            return;
+        }
+
+        const nextStatus = !account.isActive;
+        const accountId = account._id || account.id;
+        setStatusUpdatingId(accountId);
+
+        patch(`account/${accountId}/active`, { isActive: nextStatus })
+            .then(() => {
+                toast.success(`Tài khoản ${nextStatus ? 'đã được mở khóa' : 'đã bị khóa'}`);
+                loadAccounts(currentPage);
+            })
+            .catch((error) => {
+                const message = error.response?.data?.message || 'Không thể thay đổi trạng thái tài khoản';
+                toast.error(message);
+            })
+            .finally(() => {
+                setStatusUpdatingId(null);
             });
     };
 
@@ -219,6 +245,7 @@ const AdminPage = () => {
                                 <th className="px-4 py-3 text-left">Username</th>
                                 <th className="px-4 py-3 text-left">Fullname</th>
                                 <th className="px-4 py-3 text-left">Role</th>
+                                <th className="px-4 py-3 text-left">Trạng thái</th>
                                 <th className="px-4 py-3 text-left">Hành động</th>
                             </tr>
                         </thead>
@@ -228,6 +255,24 @@ const AdminPage = () => {
                                     <td className="px-4 py-3">{account.username}</td>
                                     <td className="px-4 py-3">{account.fullname}</td>
                                     <td className="px-4 py-3">{account.role}</td>
+                                    <td className="px-4 py-3">
+                                        <div className="flex items-center gap-3">
+                                            <span className={account.isActive ? 'inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700' : 'inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700'}>
+                                                {account.isActive ? 'Hoạt động' : 'Đã khóa'}
+                                            </span>
+                                            <label className="relative inline-flex cursor-pointer items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={account.isActive}
+                                                    disabled={statusUpdatingId === (account._id || account.id) || getTokenPayload()?._id === account._id || getTokenPayload()?.username === account.username}
+                                                    onChange={() => toggleAccountStatus(account)}
+                                                    className="peer sr-only"
+                                                />
+                                                <span className="block h-6 w-11 rounded-full bg-slate-300 transition peer-checked:bg-blue-500"></span>
+                                                <span className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
+                                            </label>
+                                        </div>
+                                    </td>
                                     <td className="px-4 py-3">
                                         <Link
                                             to={`/admin/${account._id || account.id}`}

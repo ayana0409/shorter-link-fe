@@ -37,11 +37,9 @@ const Register = () => {
                 }, 1500);
             })
             .catch((error) => {
-                const message = error.response?.data?.message || 'An unexpected error occurred';
+                const message = error.response?.data?.error.message || 'An unexpected error occurred';
                 toast.error('An error occurred: ' + message);
             });
-        console.log(formData);
-
     };
 
     return (

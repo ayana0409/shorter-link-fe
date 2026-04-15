@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { post } from "../../utils/request";
 import toast from "react-hot-toast";
 import { setTokenWithExpiry, getTokenWithExpiry } from "../../constants/localStorage";
@@ -31,8 +31,13 @@ const Login = () => {
                 navigate(redirectTo, { replace: true });
             })
             .catch(err => {
-                const message = err.response?.data?.message || 'An unexpected error occurred';
+                console.error(err);
+                const rawMessage = err.response?.data?.message || err.response?.data?.error?.message;
+                const message = Array.isArray(rawMessage) ? rawMessage.join(' ') : String(rawMessage || 'An unexpected error occurred');
                 toast.error(message);
+                if (err.response?.status === 403 && /khóa|locked|bị khóa/i.test(message)) {
+                    navigate('/locked', { replace: true });
+                }
             });
     }
 
@@ -85,6 +90,12 @@ const Login = () => {
                         Đăng nhập
                     </button>
                 </form>
+                <div className="mt-4 text-center text-sm text-slate-600">
+                    Chưa có tài khoản?{' '}
+                    <Link to="/register" className="font-semibold text-blue-600 hover:text-blue-700">
+                        Đăng ký ngay
+                    </Link>
+                </div>
             </div>
         </PageWrapper>
     );
