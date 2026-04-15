@@ -41,9 +41,14 @@ request.interceptors.response.use(
     }
 );
 
+const buildAuthHeaders = () => {
+    const token = getToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 export const remove = async (path, options = {}) => {
     const headers = {
-        'Authorization': `Bearer ${getToken()}`,
+        ...buildAuthHeaders(),
         ...options.headers,
     };
     const response = await request.delete(path, { ...options, headers });
@@ -52,7 +57,7 @@ export const remove = async (path, options = {}) => {
 
 export const get = async (path, options = {}) => {
     const headers = {
-        'Authorization': `Bearer ${getToken()}`,
+        ...buildAuthHeaders(),
         ...options.headers,
     };
     const response = await request.get(path, { ...options, headers });
@@ -62,7 +67,7 @@ export const get = async (path, options = {}) => {
 
 export const post = async (path, data = {}, options = {}) => {
     const headers = {
-        'Authorization': `Bearer ${getToken()}`,
+        ...buildAuthHeaders(),
         ...options.headers,
     };
     const response = await request.post(path, data, { ...options, headers });
@@ -71,7 +76,7 @@ export const post = async (path, data = {}, options = {}) => {
 
 export const put = async (path, data = {}, options = {}) => {
     const headers = {
-        'Authorization': `Bearer ${getToken()}`,
+        ...buildAuthHeaders(),
         ...options.headers,
     };
     const response = await request.put(path, data, { ...options, headers });
@@ -80,7 +85,7 @@ export const put = async (path, data = {}, options = {}) => {
 
 export const patch = async (path, data = {}, options = {}) => {
     const headers = {
-        'Authorization': `Bearer ${getToken()}`,
+        ...buildAuthHeaders(),
         ...options.headers,
     };
     const response = await request.patch(path, data, { ...options, headers });

@@ -10,20 +10,36 @@ const CreateLink = () => {
   const [links, setLinks] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("valid");
+  const [isCreating, setIsCreating] = useState(false);
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState("desc");
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const pageSize = 5;
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
-  const refreshLinks = () => {
-    get("shortener/user")
+  const refreshLinks = (
+    page = 1,
+    search = searchQuery,
+    status = statusFilter,
+    sort = sortBy,
+    order = sortOrder,
+  ) => {
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    if (status) params.append("status", status);
+    if (sort) params.append("sortBy", sort);
+    if (order) params.append("sortOrder", order);
+    params.append("page", String(page));
+    params.append("limit", String(pageSize));
+
+    get(`shortener/user?${params.toString()}`)
       .then((response) => {
-        const userLinks = Array.isArray(response)
-          ? response
-          : response?.data || [];
-        setLinks(userLinks);
-        setCurrentPage(1);
+        setLinks(response.data || []);
+        setCurrentPage(response.page || page);
+        setTotalPages(response.totalPages || 1);
       })
       .catch((error) => {
         const message = error.response?.data?.message || 'Không thể tải danh sách liên kết';
@@ -55,13 +71,19 @@ const CreateLink = () => {
   };
 
   const createLink = () => {
+    if (isCreating) {
+      return;
+    }
+
     if (!originalLink) {
       toast.error("Vui lòng nhập liên kết gốc");
       return;
     }
 
+    setIsCreating(true);
     post("shortener", { originalUrl: originalLink })
       .then((response) => {
+        console.log(response);
         if (response?.shortUrl) {
           setShortLink("http://localhost:3000/" + response.shortUrl);
           toast.success("Tạo liên kết thành công!");
@@ -73,6 +95,9 @@ const CreateLink = () => {
       .catch((error) => {
         const message = error.response?.data?.message || 'Không thể tạo liên kết';
         toast.error(message);
+      })
+      .finally(() => {
+        setIsCreating(false);
       });
   };
 
@@ -89,36 +114,7 @@ const CreateLink = () => {
     return 'Còn hạn';
   };
 
-  const isLinkValid = (link) => {
-    return link.status === 'active' && !isLinkExpired(link);
-  };
-
-  const filteredLinks = links.filter((link) => {
-    const matchesSearch = (link.siteName ?? 'Không rõ')
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-
-    const matchesStatus = (() => {
-      if (statusFilter === 'valid') {
-        return isLinkValid(link);
-      }
-      if (statusFilter === 'expired') {
-        return getLinkStatus(link) === 'Hết hạn';
-      }
-      if (statusFilter === 'disabled') {
-        return getLinkStatus(link) === 'Đã xóa';
-      }
-      return true;
-    })();
-
-    return matchesSearch && matchesStatus;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filteredLinks.length / pageSize));
-  const paginatedLinks = filteredLinks.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize,
-  );
+  const paginatedLinks = links;
 
 
   useEffect(() => {
@@ -128,6 +124,7 @@ const CreateLink = () => {
     if (loggedIn) {
       refreshLinks();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const goToLogin = () => {
@@ -213,10 +210,12 @@ const CreateLink = () => {
           />
           <p className="text-sm text-gray-500 mt-2">Tên trang web sẽ được tự động lấy từ tiêu đề trang khi tạo link.</p>
           <button
+            type="button"
             onClick={createLink}
-            className="w-full bg-blue-500 text-white px-4 py-2 rounded mt-3 hover:bg-blue-600 transition duration-300"
+            disabled={isCreating}
+            className={`w-full text-white px-4 py-2 rounded mt-3 transition duration-300 ${isCreating ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}
           >
-            Rút gọn
+            {isCreating ? 'Đang rút gọn...' : 'Rút gọn'}
           </button>
         </div>
 
@@ -250,8 +249,10 @@ const CreateLink = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => {
-                  setSearchQuery(e.target.value);
+                  const nextSearch = e.target.value;
+                  setSearchQuery(nextSearch);
                   setCurrentPage(1);
+                  refreshLinks(1, nextSearch, statusFilter, sortBy, sortOrder);
                 }}
                 placeholder="Tìm kiếm theo tên web"
                 className="w-full sm:w-80 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -259,8 +260,10 @@ const CreateLink = () => {
               <select
                 value={statusFilter}
                 onChange={(e) => {
-                  setStatusFilter(e.target.value);
+                  const nextStatus = e.target.value;
+                  setStatusFilter(nextStatus);
                   setCurrentPage(1);
+                  refreshLinks(1, searchQuery, nextStatus, sortBy, sortOrder);
                 }}
                 className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
@@ -269,15 +272,42 @@ const CreateLink = () => {
                 <option value="disabled">Đã xóa</option>
                 <option value="all">Tất cả</option>
               </select>
+              <select
+                value={sortBy}
+                onChange={(e) => {
+                  const nextSortBy = e.target.value;
+                  setSortBy(nextSortBy);
+                  setCurrentPage(1);
+                  refreshLinks(1, searchQuery, statusFilter, nextSortBy, sortOrder);
+                }}
+                className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="createdAt">Mới nhất</option>
+                <option value="siteName">Tên trang</option>
+                <option value="clicks">Lượt click</option>
+              </select>
+              <select
+                value={sortOrder}
+                onChange={(e) => {
+                  const nextSortOrder = e.target.value;
+                  setSortOrder(nextSortOrder);
+                  setCurrentPage(1);
+                  refreshLinks(1, searchQuery, statusFilter, sortBy, nextSortOrder);
+                }}
+                className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="desc">Giảm dần</option>
+                <option value="asc">Tăng dần</option>
+              </select>
               <button
-                onClick={refreshLinks}
+                onClick={() => refreshLinks(currentPage)}
                 className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-300"
               >
                 Làm mới
               </button>
             </div>
           </div>
-          {filteredLinks.length > 0 ? (
+          {links.length > 0 ? (
             <>
               <table className="table-auto w-full border-collapse">
                 <thead>
@@ -338,7 +368,11 @@ const CreateLink = () => {
 
               <div className="mt-4 flex items-center justify-between">
                 <button
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  onClick={() => {
+                    const nextPage = Math.max(currentPage - 1, 1);
+                    setCurrentPage(nextPage);
+                    refreshLinks(nextPage);
+                  }}
                   disabled={currentPage === 1}
                   className="px-4 py-2 rounded bg-gray-200 text-gray-700 disabled:opacity-50"
                 >
@@ -348,7 +382,11 @@ const CreateLink = () => {
                   Trang {currentPage} / {totalPages}
                 </div>
                 <button
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  onClick={() => {
+                    const nextPage = Math.min(currentPage + 1, totalPages);
+                    setCurrentPage(nextPage);
+                    refreshLinks(nextPage);
+                  }}
                   disabled={currentPage === totalPages}
                   className="px-4 py-2 rounded bg-gray-200 text-gray-700 disabled:opacity-50"
                 >

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams, Link } from 'react-router-dom';
-import { get, patch } from '../../utils/request';
+import { get, patch, remove } from '../../utils/request';
 import toast from 'react-hot-toast';
 import { getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
 
@@ -8,28 +8,61 @@ const AccountDetailPage = () => {
     const { id } = useParams();
     const [account, setAccount] = useState(null);
     const [links, setLinks] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [sortBy, setSortBy] = useState('createdAt');
+    const [sortOrder, setSortOrder] = useState('desc');
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const pageSize = 5;
     const navigate = useNavigate();
     const location = useLocation();
 
-    useEffect(() => {
-        const role = getTokenRole();
-        if (!getTokenWithExpiry() || role !== 'admin') {
-            navigate('/login', { state: { from: location.pathname }, replace: true });
-            return;
-        }
+    const refreshLinks = (
+        page = 1,
+        search = searchQuery,
+        status = statusFilter,
+        sortField = sortBy,
+        order = sortOrder,
+    ) => {
+        const pageNumber = Math.max(1, Number(page) || 1);
+        const params = new URLSearchParams();
+        const trimmedSearch = search?.trim() ?? '';
+        if (trimmedSearch) params.append('search', trimmedSearch);
+        if (status && status !== 'all') params.append('status', status);
+        if (sortField) params.append('sortBy', sortField);
+        if (order) params.append('sortOrder', order);
+        params.append('page', String(pageNumber));
+        params.append('limit', String(pageSize));
 
-        get(`account/admin/${id}`)
+        get(`account/admin/${id}?${params.toString()}`)
             .then((response) => {
                 setAccount(response.account);
-                setLinks(response.links || []);
-                setCurrentPage(1);
+                const linksList = Array.isArray(response?.links)
+                    ? response.links
+                    : [];
+                const totalPagesFromResponse = Number(response?.totalPages) || 1;
+                const nextPage = Math.min(Math.max(Number(response?.page) || pageNumber, 1), totalPagesFromResponse);
+
+                setLinks(linksList);
+                setCurrentPage(nextPage);
+                setTotalPages(totalPagesFromResponse);
             })
             .catch((error) => {
                 const message = error.response?.data?.message || 'Không thể tải chi tiết tài khoản';
                 toast.error(message);
             });
+    };
+
+    useEffect(() => {
+        const role = getTokenRole();
+        if (!getTokenWithExpiry() || role !== 'admin') {
+            navigate('/not-found', { replace: true });
+            return;
+        }
+
+        refreshLinks(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, navigate, location.pathname]);
 
     const getLinkStatus = (link) => {
@@ -60,9 +93,7 @@ const AccountDetailPage = () => {
         patch(`shortener/${link._id || link.id}`, { status: nextStatus })
             .then(() => {
                 toast.success('Cập nhật trạng thái liên kết thành công');
-                get(`account/admin/${id}`).then((response) => {
-                    setLinks(response.links || []);
-                });
+                refreshLinks(currentPage);
             })
             .catch((error) => {
                 const message = error.response?.data?.message || 'Không thể cập nhật trạng thái liên kết';
@@ -70,8 +101,19 @@ const AccountDetailPage = () => {
             });
     };
 
-    const totalPages = Math.max(1, Math.ceil(links.length / pageSize));
-    const paginatedLinks = links.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    const deleteLink = (linkId) => {
+        remove(`shortener/${linkId}`)
+            .then(() => {
+                toast.success('Đã xóa liên kết');
+                refreshLinks(currentPage);
+            })
+            .catch((error) => {
+                const message = error.response?.data?.message || 'Không thể xóa liên kết';
+                toast.error(message);
+            });
+    };
+
+    const paginatedLinks = links;
 
     if (!account) {
         return (
@@ -113,7 +155,74 @@ const AccountDetailPage = () => {
                 </div>
 
                 <div>
-                    <h2 className="text-xl font-semibold mb-4">Danh sách liên kết</h2>
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h2 className="text-xl font-semibold">Danh sách liên kết</h2>
+                            <p className="text-sm text-gray-600">Lọc và phân trang giống CreateLink</p>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    const nextSearch = e.target.value;
+                                    setSearchQuery(nextSearch);
+                                    setCurrentPage(1);
+                                    refreshLinks(1, nextSearch, statusFilter, sortBy, sortOrder);
+                                }}
+                                placeholder="Tìm kiếm theo tên web"
+                                className="w-full sm:w-64 p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <select
+                                value={statusFilter}
+                                onChange={(e) => {
+                                    const nextStatus = e.target.value;
+                                    setStatusFilter(nextStatus);
+                                    setCurrentPage(1);
+                                    refreshLinks(1, searchQuery, nextStatus, sortBy, sortOrder);
+                                }}
+                                className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="all">Tất cả</option>
+                                <option value="valid">Còn hạn</option>
+                                <option value="expired">Hết hạn</option>
+                                <option value="disabled">Đã xóa</option>
+                            </select>
+                            <select
+                                value={sortBy}
+                                onChange={(e) => {
+                                    const nextSortBy = e.target.value;
+                                    setSortBy(nextSortBy);
+                                    setCurrentPage(1);
+                                    refreshLinks(1, searchQuery, statusFilter, nextSortBy, sortOrder);
+                                }}
+                                className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="createdAt">Mới nhất</option>
+                                <option value="siteName">Tên trang</option>
+                                <option value="clicks">Lượt click</option>
+                            </select>
+                            <select
+                                value={sortOrder}
+                                onChange={(e) => {
+                                    const nextSortOrder = e.target.value;
+                                    setSortOrder(nextSortOrder);
+                                    setCurrentPage(1);
+                                    refreshLinks(1, searchQuery, statusFilter, sortBy, nextSortOrder);
+                                }}
+                                className="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="desc">Giảm dần</option>
+                                <option value="asc">Tăng dần</option>
+                            </select>
+                            <button
+                                onClick={() => refreshLinks(currentPage)}
+                                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-300"
+                            >
+                                Làm mới
+                            </button>
+                        </div>
+                    </div>
                     {links.length > 0 ? (
                         <div>
                             <table className="table-auto w-full border-collapse">
@@ -142,7 +251,7 @@ const AccountDetailPage = () => {
                                             <td className="border px-4 py-2">{link.clicks ?? 0}</td>
                                             <td className="border px-4 py-2">{getLinkStatus(link)}</td>
                                             <td className="border px-4 py-2">{link.expiresAt ? new Date(link.expiresAt).toLocaleString() : 'Không có'}</td>
-                                            <td className="border px-4 py-2">
+                                            <td className="border px-4 py-2 flex flex-col gap-2 sm:flex-row sm:items-center">
                                                 <button
                                                     onClick={() => toggleLinkStatus(link)}
                                                     disabled={isLinkExpired(link)}
@@ -154,6 +263,12 @@ const AccountDetailPage = () => {
                                                 >
                                                     {link.status === 'disabled' ? 'Bật' : 'Tắt'}
                                                 </button>
+                                                <button
+                                                    onClick={() => deleteLink(link._id || link.id)}
+                                                    className="px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600 transition duration-200"
+                                                >
+                                                    Xóa
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -161,7 +276,11 @@ const AccountDetailPage = () => {
                             </table>
                             <div className="mt-4 flex items-center justify-between">
                                 <button
-                                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                                    onClick={() => {
+                                        const nextPage = Math.max(currentPage - 1, 1);
+                                        setCurrentPage(nextPage);
+                                        refreshLinks(nextPage);
+                                    }}
                                     disabled={currentPage === 1}
                                     className="px-4 py-2 rounded bg-gray-200 text-gray-700 disabled:opacity-50"
                                 >
@@ -171,7 +290,11 @@ const AccountDetailPage = () => {
                                     Trang {currentPage} / {totalPages}
                                 </div>
                                 <button
-                                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                                    onClick={() => {
+                                        const nextPage = Math.min(currentPage + 1, totalPages);
+                                        setCurrentPage(nextPage);
+                                        refreshLinks(nextPage);
+                                    }}
                                     disabled={currentPage === totalPages}
                                     className="px-4 py-2 rounded bg-gray-200 text-gray-700 disabled:opacity-50"
                                 >

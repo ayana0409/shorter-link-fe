@@ -46,7 +46,14 @@ export const getTokenPayload = () => {
     }
 
     try {
-        return JSON.parse(atob(token.split('.')[1]))
+        const base64Url = token.split('.')[1]
+        if (!base64Url) {
+            return null
+        }
+
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+        const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=')
+        return JSON.parse(atob(padded))
     } catch (error) {
         return null
     }
@@ -63,7 +70,14 @@ export const removeToken = () => {
 
 const decodeJWT = (token) => {
     try {
-        const payload = JSON.parse(atob(token.split('.')[1]))
+        const base64Url = token.split('.')[1]
+        if (!base64Url) {
+            return null
+        }
+
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+        const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=')
+        const payload = JSON.parse(atob(padded))
         return payload.exp ? payload.exp * 1000 : null
     } catch (error) {
         return null
