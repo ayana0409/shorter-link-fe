@@ -18,7 +18,7 @@ const AppRoutes = () => {
       <Route path="/admin/:id" element={<AccountDetailPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/:shortLink" element={<Navigator />} />
+      <Route path="/s/:shortLink" element={<Navigator />} />
     </Routes>
   );
 };
