@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { post } from "../../utils/request";
 import toast from "react-hot-toast";
 import { setTokenWithExpiry, getTokenWithExpiry } from "../../constants/localStorage";
+import PageWrapper from "../../components/PageWrapper";
 
 const Login = () => {
     const [user, setUser] = useState({
@@ -48,42 +49,44 @@ const Login = () => {
     }
 
     return (
-        <div className="flex justify-center items-center min-h-screen bg-gray-100">
-            <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-md">
-                <h2 className="text-2xl font-bold mb-6 text-center">LOGIN</h2>
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label className="block text-gray-700">Username:</label>
+        <PageWrapper
+            title="Đăng nhập"
+            subtitle="Truy cập vào trang quản lý liên kết của bạn"
+        >
+            <div className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm shadow-slate-300/10">
+                <h2 className="text-3xl font-bold mb-6 text-center text-slate-900">Đăng nhập</h2>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">Username</label>
                         <input
                             type="text"
                             name="username"
                             value={user.username}
                             onChange={handleChange}
                             required
-                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                     </div>
-                    <div className="mb-4">
-                        <label className="block text-gray-700">Password:</label>
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">Password</label>
                         <input
                             type="password"
                             name="password"
                             value={user.password}
                             onChange={handleChange}
                             required
-                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                     </div>
-
                     <button
                         type="submit"
-                        className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full rounded-2xl bg-blue-500 px-4 py-3 text-white shadow-md shadow-blue-500/10 transition hover:bg-blue-600"
                     >
-                        Login
+                        Đăng nhập
                     </button>
                 </form>
             </div>
-        </div>
+        </PageWrapper>
     );
 }
 

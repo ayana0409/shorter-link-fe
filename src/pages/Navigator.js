@@ -3,6 +3,7 @@ import React from 'react';
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { get } from "../utils/request";
+import PageWrapper from "../components/PageWrapper";
 
 const Navigator = () => {
     const { shortLink } = useParams();
@@ -39,33 +40,44 @@ const Navigator = () => {
     }, [countdown, navigate]);
 
     return (
-        <div className="bg-gray-100 flex items-center justify-center min-h-screen">
-            <div className="bg-white p-6 rounded shadow-md text-center">
-                {countdown === 0 ? (
-                    <h1 className="text-2xl font-bold mb-4">Liên kết của bạn đã sẵn sàng!</h1>
-                ) : (
-                    <h1 className="text-2xl font-bold mb-4">Đang chuẩn bị liên kết...</h1>
-                )}
-
-                <div className="grid grid-cols-1 gap-4">
-                    <div className="bg-gray-200 p-4 rounded">Quảng cáo 1</div>
-                    <div className="bg-gray-200 p-4 rounded">Quảng cáo 2</div>
-                    <div className="bg-gray-200 p-4 rounded">Quảng cáo 3</div>
+        <PageWrapper
+            title="Đang chuyển hướng"
+            subtitle="Chuẩn bị điều hướng tới liên kết gốc cho bạn"
+        >
+            <div className="mx-auto max-w-2xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm shadow-slate-300/10">
+                <div className="text-center">
+                    {countdown === 0 ? (
+                        <h1 className="text-3xl font-bold text-slate-900 mb-4">Liên kết của bạn đã sẵn sàng!</h1>
+                    ) : (
+                        <h1 className="text-3xl font-bold text-slate-900 mb-4">Đang chuẩn bị liên kết...</h1>
+                    )}
+                    <p className="text-slate-600 mb-6">Bạn sẽ được chuyển đến trang gốc trong vài giây.</p>
                 </div>
-                {countdown === 0 ? (
-                    <button
-                        className="bg-blue-500 text-white px-4 py-2 rounded my-3 disabled:bg-gray-400"
-                        onClick={() => originalLink && (window.location.href = originalLink)}
-                        disabled={!originalLink}
-                    >
-                        Get link
-                    </button>
-                ) : (
-                    <h3 className="text-xl font-semibold mb-4">{countdown}</h3>
-                )}
 
+                <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-slate-700">Quảng cáo 1</div>
+                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-slate-700">Quảng cáo 2</div>
+                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 text-slate-700">Quảng cáo 3</div>
+                </div>
+
+                <div className="mt-8 text-center">
+                    {countdown === 0 ? (
+                        <button
+                            className="rounded-2xl bg-blue-500 px-6 py-3 text-white shadow-md shadow-blue-500/10 transition hover:bg-blue-600 disabled:bg-slate-300"
+                            onClick={() => originalLink && (window.location.href = originalLink)}
+                            disabled={!originalLink}
+                        >
+                            Mở liên kết
+                        </button>
+                    ) : (
+                        <div className="inline-flex items-center gap-3 rounded-3xl bg-slate-100 px-6 py-4 text-2xl font-semibold text-slate-900">
+                            <span>{countdown}</span>
+                            <span>giây</span>
+                        </div>
+                    )}
+                </div>
             </div>
-        </div >
+        </PageWrapper>
     );
 };
 

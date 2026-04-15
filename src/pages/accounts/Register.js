@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import 'tailwindcss/tailwind.css';
 import toast from 'react-hot-toast';
 import request from '../../utils/request';
+import PageWrapper from '../../components/PageWrapper';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -44,63 +45,66 @@ const Register = () => {
     };
 
     return (
-        <div className="flex justify-center items-center min-h-screen bg-gray-100">
-            <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-md">
-                <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
-                <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
-                        <label className="block text-gray-700">Full Name:</label>
+        <PageWrapper
+            title="Đăng ký"
+            subtitle="Tạo tài khoản để quản lý liên kết và truy cập dashboard"
+        >
+            <div className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm shadow-slate-300/10">
+                <h2 className="text-3xl font-bold mb-6 text-center text-slate-900">Đăng ký</h2>
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">Full Name</label>
                         <input
                             type="text"
                             name="fullname"
                             value={formData.fullname}
                             onChange={handleChange}
                             required
-                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                     </div>
-                    <div className="mb-4">
-                        <label className="block text-gray-700">Username:</label>
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">Username</label>
                         <input
                             type="text"
                             name="username"
                             value={formData.username}
                             onChange={handleChange}
                             required
-                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                     </div>
-                    <div className="mb-4">
-                        <label className="block text-gray-700">Password:</label>
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">Password</label>
                         <input
                             type="password"
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
                             required
-                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                     </div>
-                    <div className="mb-4">
-                        <label className="block text-gray-700">Verify Password:</label>
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">Verify Password</label>
                         <input
                             type="password"
                             name="verifyPassword"
                             value={verifyPassword}
                             onChange={e => setVerifyPassword(e.target.value)}
                             required
-                            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                     </div>
                     <button
                         type="submit"
-                        className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full rounded-2xl bg-blue-500 px-4 py-3 text-white shadow-md shadow-blue-500/10 transition hover:bg-blue-600"
                     >
                         Register
                     </button>
                 </form>
             </div>
-        </div>
+        </PageWrapper>
     );
 };
 
