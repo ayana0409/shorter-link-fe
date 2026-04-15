@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: shorter-link-fe
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    nodeVersion: 20.24.0
