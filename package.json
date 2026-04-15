@@ -11,6 +11,7 @@
     "react-hot-toast": "^2.5.1",
     "react-router-dom": "^7.1.5",
     "react-scripts": "5.0.1",
+    "serve": "^14.2.6",
     "tailwindcss": "^3.4.17"
   },
   "scripts": {
