@@ -21,6 +21,7 @@ const CreateLink = () => {
   const pageSize = 5;
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [quotaInfo, setQuotaInfo] = useState(null);
   const navigate = useNavigate();
 
   const refreshLinks = (
@@ -86,11 +87,11 @@ const CreateLink = () => {
     setIsCreating(true);
     post("shortener", { originalUrl: originalLink })
       .then((response) => {
-        console.log(response);
         if (response?.shortUrl) {
           setShortLink(`${clientUrl}/${response.shortUrl}`);
           toast.success("Tạo liên kết thành công!");
           refreshLinks();
+          fetchQuota();
         } else {
           toast.error("Không thể tạo liên kết");
         }
@@ -126,6 +127,7 @@ const CreateLink = () => {
     setIsAdmin(getTokenRole() === 'admin');
     if (loggedIn) {
       refreshLinks();
+      fetchQuota();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -141,6 +143,16 @@ const CreateLink = () => {
   const logout = () => {
     localStorage.removeItem('token');
     window.location.href = '/login';
+  };
+
+  const fetchQuota = () => {
+    get('shortener/quota')
+      .then((response) => {
+        setQuotaInfo(response);
+      })
+      .catch(() => {
+        setQuotaInfo(null);
+      });
   };
 
   const copyToClipboard = () => {
@@ -194,6 +206,26 @@ const CreateLink = () => {
       }
     >
       <h1 className="text-4xl font-semibold text-slate-900 uppercase text-center">Tạo liên kết rút gọn</h1>
+      {isLoggedIn && quotaInfo && (
+        <div className="mx-auto mb-6 max-w-4xl rounded-3xl border border-slate-200 bg-slate-50 p-4 text-slate-700 shadow-sm shadow-slate-300/10">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-slate-500">Xin chào</p>
+              <p className="text-lg font-semibold text-slate-900">{quotaInfo.username}</p>
+            </div>
+            <div className="rounded-3xl bg-white p-4 shadow-sm shadow-slate-200">
+              {quotaInfo.unlimited ? (
+                <p className="text-sm text-slate-500">Admin không bị giới hạn</p>
+              ) : (
+                <>
+                  <p className="text-sm text-slate-500">Lượt tạo link còn lại hôm nay</p>
+                  <p className="text-xl font-semibold text-slate-900">{quotaInfo.remaining} / {quotaInfo.limit}</p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
           <div className="mb-4">
