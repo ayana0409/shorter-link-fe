@@ -5,7 +5,7 @@ import AccountLocked from "../pages/AccountLocked";
 import CreateLink from "../pages/CreateLink";
 import { RegisterPage } from "../pages/accounts";
 import { LoginPage } from "../pages/auth";
-import { AdminPage, AccountDetailPage } from "../pages/admin";
+import { AdminPage, AccountDetailPage, AuditLogPage } from "../pages/admin";
 
 const AppRoutes = () => {
   return (
@@ -15,6 +15,7 @@ const AppRoutes = () => {
       <Route path="/locked" element={<AccountLocked />} />
       <Route path="/home" element={<CreateLink />} />
       <Route path="/admin" element={<AdminPage />} />
+      <Route path="/admin/audit" element={<AuditLogPage />} />
       <Route path="/admin/:id" element={<AccountDetailPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />

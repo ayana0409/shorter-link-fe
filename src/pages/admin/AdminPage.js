@@ -131,6 +131,12 @@ const AdminPage = () => {
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
                         <Link
+                            to="/admin/audit"
+                            className="rounded-2xl bg-indigo-500 px-4 py-3 text-white transition hover:bg-indigo-600"
+                        >
+                            Nhật ký hoạt động
+                        </Link>
+                        <Link
                             to="/home"
                             className="rounded-2xl bg-slate-500 px-4 py-3 text-white transition hover:bg-slate-600"
                         >
