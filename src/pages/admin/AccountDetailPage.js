@@ -231,10 +231,10 @@ const AccountDetailPage = () => {
                     </div>
                     <div className="flex flex-wrap gap-3">
                         <Link
-                            to="/admin"
+                            to="/admin/accounts"
                             className="rounded-2xl bg-slate-500 px-4 py-3 text-white transition hover:bg-slate-600"
                         >
-                            Quay lại admin
+                            Quay lại quản lý tài khoản
                         </Link>
                         <Link
                             to="/home"

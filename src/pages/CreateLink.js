@@ -7,7 +7,79 @@ import PageWrapper from "../components/PageWrapper";
 
 const clientUrl = (process.env.REACT_APP_CLIENT_URL || window.location.origin).replace(/\/$/, '');
 
+const LineChart = ({ data }) => {
+  if (!data || data.length === 0) {
+    return <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-500">Chưa có dữ liệu biểu đồ</div>;
+  }
+
+  const width = 640;
+  const height = 260;
+  const padding = 40;
+  const values = data.map((item) => item.value);
+  const maxValue = Math.max(...values, 1);
+  const minValue = Math.min(...values, 0);
+  const points = data.map((item, index) => {
+    const x = padding + (index * (width - padding * 2)) / Math.max(data.length - 1, 1);
+    const y = height - padding - ((item.value - minValue) * (height - padding * 2)) / Math.max(maxValue - minValue, 1);
+    return `${x},${y}`;
+  });
+
+  return (
+    <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-slate-50 p-4 shadow-sm shadow-slate-300/10">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
+        <defs>
+          <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#2563eb" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#2563eb" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[0, 1, 2, 3].map((line) => {
+          const y = padding + ((height - padding * 2) / 3) * line;
+          return (
+            <line key={line} x1={padding} x2={width - padding} y1={y} y2={y} stroke="#e2e8f0" strokeWidth="1" />
+          );
+        })}
+        <path
+          d={`M${points.join(" L")}`}
+          fill="none"
+          stroke="#2563eb"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <polygon
+          points={`${points.join(" ")} ${width - padding},${height - padding} ${padding},${height - padding}`}
+          fill="url(#chartGradient)"
+        />
+        {points.map((point, index) => {
+          const [x, y] = point.split(",");
+          return (
+            <g key={index}>
+              <circle cx={x} cy={y} r="4" fill="#2563eb" />
+              <text x={x} y={Number(y) - 10} textAnchor="middle" fontSize="10" fill="#0f172a">
+                {data[index].value}
+              </text>
+            </g>
+          );
+        })}
+        {data.map((item, index) => {
+          const x = padding + (index * (width - padding * 2)) / Math.max(data.length - 1, 1);
+          return (
+            <text key={item.label} x={x} y={height - padding + 16} textAnchor="middle" fontSize="10" fill="#334155">
+              {item.label}
+            </text>
+          );
+        })}
+      </svg>
+    </div>
+  );
+};
+
 const CreateLink = () => {
+  const formatDate = (date) => date.toISOString().slice(0, 10);
+  const defaultToDate = formatDate(new Date());
+  const defaultFromDate = formatDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+
   const [originalLink, setOriginalLink] = useState("");
   const [shortLink, setShortLink] = useState("");
   const [links, setLinks] = useState([]);
@@ -22,6 +94,10 @@ const CreateLink = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [quotaInfo, setQuotaInfo] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState([]);
+  const [analyticsRange, setAnalyticsRange] = useState("daily");
+  const [analyticsFrom, setAnalyticsFrom] = useState(defaultFromDate);
+  const [analyticsTo, setAnalyticsTo] = useState(defaultToDate);
   const navigate = useNavigate();
 
   const refreshLinks = (
@@ -118,6 +194,21 @@ const CreateLink = () => {
     return 'Còn hạn';
   };
 
+  const fetchAnalytics = () => {
+    const params = new URLSearchParams();
+    if (analyticsRange) params.append('range', analyticsRange);
+    if (analyticsFrom) params.append('from', analyticsFrom);
+    if (analyticsTo) params.append('to', analyticsTo);
+
+    get(`shortener/analytics?${params.toString()}`)
+      .then((response) => {
+        setAnalyticsData(Array.isArray(response) ? response : []);
+      })
+      .catch(() => {
+        setAnalyticsData([]);
+      });
+  };
+
   const paginatedLinks = links;
 
 
@@ -128,6 +219,7 @@ const CreateLink = () => {
     if (loggedIn) {
       refreshLinks();
       fetchQuota();
+      fetchAnalytics();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -225,6 +317,48 @@ const CreateLink = () => {
             </div>
           </div>
         </div>
+      )}
+      {isLoggedIn && (
+        <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900">Biểu đồ tăng trưởng</h2>
+              <p className="mt-2 text-sm text-slate-600">Theo dõi số lượng link tạo theo ngày/tuần.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <select
+                value={analyticsRange}
+                onChange={(e) => {
+                  setAnalyticsRange(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="daily">Theo ngày</option>
+                <option value="weekly">Theo tuần</option>
+              </select>
+              <input
+                type="date"
+                value={analyticsFrom}
+                onChange={(e) => setAnalyticsFrom(e.target.value)}
+                className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+              <input
+                type="date"
+                value={analyticsTo}
+                onChange={(e) => setAnalyticsTo(e.target.value)}
+                className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+          </div>
+          <button
+            onClick={fetchAnalytics}
+            className="mb-6 rounded-2xl bg-blue-500 px-4 py-3 text-white shadow-md shadow-blue-500/10 transition hover:bg-blue-600"
+          >
+            Cập nhật biểu đồ
+          </button>
+          <LineChart data={analyticsData} />
+        </section>
       )}
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">

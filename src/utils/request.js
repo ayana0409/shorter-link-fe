@@ -54,12 +54,22 @@ const buildAuthHeaders = () => {
     return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
+const normalizePath = (path) => {
+    if (typeof path !== 'string') {
+        return path;
+    }
+    if (path.startsWith('/') || path.startsWith('http://') || path.startsWith('https://')) {
+        return path;
+    }
+    return `/${path}`;
+};
+
 export const remove = async (path, options = {}) => {
     const headers = {
         ...buildAuthHeaders(),
         ...options.headers,
     };
-    const response = await request.delete(path, { ...options, headers });
+    const response = await request.delete(normalizePath(path), { ...options, headers });
     return response.data;
 };
 
@@ -68,7 +78,7 @@ export const get = async (path, options = {}) => {
         ...buildAuthHeaders(),
         ...options.headers,
     };
-    const response = await request.get(path, { ...options, headers });
+    const response = await request.get(normalizePath(path), { ...options, headers });
 
     return response.data;
 };
@@ -78,7 +88,7 @@ export const post = async (path, data = {}, options = {}) => {
         ...buildAuthHeaders(),
         ...options.headers,
     };
-    const response = await request.post(path, data, { ...options, headers });
+    const response = await request.post(normalizePath(path), data, { ...options, headers });
     return response.data;
 };
 
@@ -87,7 +97,7 @@ export const put = async (path, data = {}, options = {}) => {
         ...buildAuthHeaders(),
         ...options.headers,
     };
-    const response = await request.put(path, data, { ...options, headers });
+    const response = await request.put(normalizePath(path), data, { ...options, headers });
     return response.data;
 };
 
@@ -96,7 +106,7 @@ export const patch = async (path, data = {}, options = {}) => {
         ...buildAuthHeaders(),
         ...options.headers,
     };
-    const response = await request.patch(path, data, { ...options, headers });
+    const response = await request.patch(normalizePath(path), data, { ...options, headers });
     return response.data;
 };
 
