@@ -1,7 +1,7 @@
 services:
-  - type: web
+  - type: static
     name: shink
-    env: node
+    env: static
+    root: .
     buildCommand: npm install && npm run build
-    startCommand: npm run start:render
-    nodeVersion: 20.18.0
+    publishDirectory: build
