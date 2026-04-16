@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { get, post, patch } from "../utils/request";
 import toast from 'react-hot-toast';
-import { getTokenWithExpiry, getTokenRole } from "../constants/localStorage";
+import { getTokenWithExpiry } from "../constants/localStorage";
 import PageWrapper from "../components/PageWrapper";
 
 const clientUrl = (process.env.REACT_APP_CLIENT_URL || window.location.origin).replace(/\/$/, '');
@@ -92,13 +91,11 @@ const CreateLink = () => {
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 5;
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [quotaInfo, setQuotaInfo] = useState(null);
   const [analyticsData, setAnalyticsData] = useState([]);
   const [analyticsRange, setAnalyticsRange] = useState("daily");
   const [analyticsFrom, setAnalyticsFrom] = useState(defaultFromDate);
   const [analyticsTo, setAnalyticsTo] = useState(defaultToDate);
-  const navigate = useNavigate();
 
   const refreshLinks = (
     page = 1,
@@ -215,7 +212,6 @@ const CreateLink = () => {
   useEffect(() => {
     const loggedIn = Boolean(getTokenWithExpiry());
     setIsLoggedIn(loggedIn);
-    setIsAdmin(getTokenRole() === 'admin');
     if (loggedIn) {
       refreshLinks();
       fetchQuota();
@@ -223,19 +219,6 @@ const CreateLink = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const goToLogin = () => {
-    navigate('/login');
-  };
-
-  const goToAdmin = () => {
-    navigate('/admin');
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    window.location.href = '/login';
-  };
 
   const fetchQuota = () => {
     get('shortener/quota')
@@ -269,33 +252,6 @@ const CreateLink = () => {
     <PageWrapper
       title="Shorter Link"
       subtitle="Tạo, quản lý và theo dõi liên kết rút gọn của bạn trong một giao diện hiện đại"
-      actions={
-        <>
-          {isAdmin && (
-            <button
-              onClick={goToAdmin}
-              className="rounded-full bg-indigo-500 px-4 py-2 text-white shadow-md shadow-indigo-500/10 transition hover:bg-indigo-600"
-            >
-              Admin
-            </button>
-          )}
-          {isLoggedIn ? (
-            <button
-              onClick={logout}
-              className="rounded-full bg-red-500 px-4 py-2 text-white shadow-md shadow-red-500/10 transition hover:bg-red-600"
-            >
-              Đăng xuất
-            </button>
-          ) : (
-            <button
-              onClick={goToLogin}
-              className="rounded-full bg-blue-500 px-4 py-2 text-white shadow-md shadow-blue-500/10 transition hover:bg-blue-600"
-            >
-              Đăng nhập
-            </button>
-          )}
-        </>
-      }
     >
       <h1 className="text-4xl font-semibold text-slate-900 uppercase text-center">Tạo liên kết rút gọn</h1>
       {isLoggedIn && quotaInfo && (

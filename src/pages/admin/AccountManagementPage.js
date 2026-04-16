@@ -124,24 +124,10 @@ const AccountManagementPage = () => {
             subtitle="Tạo, tìm kiếm và quản lý tài khoản người dùng"
         >
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
-                <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="mb-6">
                     <div>
                         <h2 className="text-2xl font-semibold text-slate-900">Quản lý tài khoản</h2>
                         <p className="mt-2 text-sm text-slate-600">Tạo mới và quản lý trạng thái tài khoản trong hệ thống.</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                        <Link
-                            to="/admin"
-                            className="rounded-2xl bg-indigo-500 px-4 py-3 text-white transition hover:bg-indigo-600"
-                        >
-                            Admin Chart
-                        </Link>
-                        <Link
-                            to="/admin/audit"
-                            className="rounded-2xl bg-slate-500 px-4 py-3 text-white transition hover:bg-slate-600"
-                        >
-                            Nhật ký hoạt động
-                        </Link>
                     </div>
                 </div>
 

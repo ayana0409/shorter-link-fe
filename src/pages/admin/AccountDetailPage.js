@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams, Link } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { get, patch, remove } from '../../utils/request';
 import toast from 'react-hot-toast';
 import { getTokenPayload, getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
@@ -224,24 +224,10 @@ const AccountDetailPage = () => {
             subtitle="Xem thông tin tài khoản và các liên kết đã tạo"
         >
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
-                <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="mb-6">
                     <div>
                         <h2 className="text-2xl font-semibold text-slate-900">Thông tin tài khoản</h2>
                         <p className="mt-2 text-sm text-slate-600">Thông tin chi tiết và liên kết của người dùng</p>
-                    </div>
-                    <div className="flex flex-wrap gap-3">
-                        <Link
-                            to="/admin/accounts"
-                            className="rounded-2xl bg-slate-500 px-4 py-3 text-white transition hover:bg-slate-600"
-                        >
-                            Quay lại quản lý tài khoản
-                        </Link>
-                        <Link
-                            to="/home"
-                            className="rounded-2xl bg-blue-500 px-4 py-3 text-white transition hover:bg-blue-600"
-                        >
-                            Về trang chính
-                        </Link>
                     </div>
                 </div>
 
