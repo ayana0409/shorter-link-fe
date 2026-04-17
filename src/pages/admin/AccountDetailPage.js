@@ -5,7 +5,16 @@ import toast from 'react-hot-toast';
 import { getTokenPayload, getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
 import PageWrapper from '../../components/PageWrapper';
 
-const clientUrl = (process.env.REACT_APP_CLIENT_URL || window.location.origin).replace(/\/$/, '');
+const getClientUrl = () => {
+    const rawUrl = process.env.REACT_APP_CLIENT_URL || window.location.origin;
+    try {
+        const parsed = new URL(rawUrl);
+        return `${parsed.protocol}//${parsed.host}`;
+    } catch {
+        return rawUrl.replace(/\/+$/, "");
+    }
+};
+const clientUrl = getClientUrl();
 
 const AccountDetailPage = () => {
     const { id } = useParams();
@@ -21,6 +30,9 @@ const AccountDetailPage = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isStatusUpdating, setIsStatusUpdating] = useState(false);
+    const [editingPasswordLinkId, setEditingPasswordLinkId] = useState('');
+    const [newLinkPassword, setNewLinkPassword] = useState('');
+    const [confirmNewLinkPassword, setConfirmNewLinkPassword] = useState('');
     const pageSize = 5;
     const navigate = useNavigate();
     const location = useLocation();
@@ -388,6 +400,7 @@ const AccountDetailPage = () => {
                                 <tr>
                                     <th className="px-4 py-3">Tên trang web</th>
                                     <th className="px-4 py-3">Link rút gọn</th>
+                                    <th className="px-4 py-3">Bảo mật</th>
                                     <th className="px-4 py-3">Lượt click</th>
                                     <th className="px-4 py-3">Trạng thái</th>
                                     <th className="px-4 py-3">Hết hạn</th>
@@ -402,7 +415,12 @@ const AccountDetailPage = () => {
                                                 {link.siteName ?? 'Không rõ'}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3">{clientUrl}/{link.shortUrl}</td>
+                                        <td className="px-4 py-3">{clientUrl}/s/{link.shortUrl}</td>
+                                        <td className="px-4 py-3">
+                                            <span className={link.passwordProtected ? 'inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-orange-700' : 'inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700'}>
+                                                {link.passwordProtected ? 'Có' : 'Không'}
+                                            </span>
+                                        </td>
                                         <td className="px-4 py-3">{link.clicks ?? 0}</td>
                                         <td className="px-4 py-3">{getLinkStatus(link)}</td>
                                         <td className="px-4 py-3">{link.expiresAt ? new Date(link.expiresAt).toLocaleString() : 'Không có'}</td>
@@ -419,11 +437,73 @@ const AccountDetailPage = () => {
                                                 {link.status === 'disabled' ? 'Bật' : 'Tắt'}
                                             </button>
                                             <button
+                                                onClick={() => {
+                                                    if (editingPasswordLinkId === (link._id || link.id)) {
+                                                        setEditingPasswordLinkId('');
+                                                        setNewLinkPassword('');
+                                                        setConfirmNewLinkPassword('');
+                                                    } else {
+                                                        setEditingPasswordLinkId(link._id || link.id);
+                                                        setNewLinkPassword('');
+                                                        setConfirmNewLinkPassword('');
+                                                    }
+                                                }}
+                                                className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 hover:bg-slate-200 transition"
+                                            >
+                                                {editingPasswordLinkId === (link._id || link.id) ? 'Hủy mật khẩu' : 'Đổi mật khẩu'}
+                                            </button>
+                                            <button
                                                 onClick={() => deleteLink(link._id || link.id)}
                                                 className="rounded-full bg-red-500 px-3 py-1 text-sm text-white hover:bg-red-600 transition"
                                             >
                                                 Xóa
                                             </button>
+                                            {editingPasswordLinkId === (link._id || link.id) && (
+                                                <div className="flex w-full flex-col gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-3">
+                                                    <input
+                                                        type="password"
+                                                        value={newLinkPassword}
+                                                        onChange={(e) => setNewLinkPassword(e.target.value)}
+                                                        placeholder="Mật khẩu mới"
+                                                        className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
+                                                    />
+                                                    <input
+                                                        type="password"
+                                                        value={confirmNewLinkPassword}
+                                                        onChange={(e) => setConfirmNewLinkPassword(e.target.value)}
+                                                        placeholder="Xác nhận mật khẩu"
+                                                        className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            if (!newLinkPassword.trim() || !confirmNewLinkPassword.trim()) {
+                                                                toast.error('Vui lòng nhập mật khẩu và xác nhận mật khẩu');
+                                                                return;
+                                                            }
+                                                            if (newLinkPassword !== confirmNewLinkPassword) {
+                                                                toast.error('Mật khẩu và xác nhận mật khẩu không khớp');
+                                                                return;
+                                                            }
+                                                            patch(`shortener/${link._id || link.id}`, { password: newLinkPassword })
+                                                                .then(() => {
+                                                                    toast.success('Cập nhật mật khẩu liên kết thành công');
+                                                                    setEditingPasswordLinkId('');
+                                                                    setNewLinkPassword('');
+                                                                    setConfirmNewLinkPassword('');
+                                                                    refreshLinks(currentPage);
+                                                                })
+                                                                .catch((error) => {
+                                                                    const message = error.response?.data?.message || 'Không thể cập nhật mật khẩu liên kết';
+                                                                    toast.error(message);
+                                                                });
+                                                        }}
+                                                        className="rounded-2xl bg-blue-500 px-3 py-2 text-white text-sm hover:bg-blue-600 transition"
+                                                    >
+                                                        Lưu mật khẩu
+                                                    </button>
+                                                </div>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

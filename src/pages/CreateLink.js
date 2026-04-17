@@ -4,7 +4,16 @@ import toast from 'react-hot-toast';
 import { getTokenWithExpiry } from "../constants/localStorage";
 import PageWrapper from "../components/PageWrapper";
 
-const clientUrl = (process.env.REACT_APP_CLIENT_URL || window.location.origin).replace(/\/$/, '');
+const getClientUrl = () => {
+  const rawUrl = process.env.REACT_APP_CLIENT_URL || window.location.origin;
+  try {
+    const parsed = new URL(rawUrl);
+    return `${parsed.protocol}//${parsed.host}`;
+  } catch {
+    return rawUrl.replace(/\/+$/, "");
+  }
+};
+const clientUrl = getClientUrl();
 
 const LineChart = ({ data }) => {
   if (!data || data.length === 0) {
@@ -96,6 +105,12 @@ const CreateLink = () => {
   const [analyticsRange, setAnalyticsRange] = useState("daily");
   const [analyticsFrom, setAnalyticsFrom] = useState(defaultFromDate);
   const [analyticsTo, setAnalyticsTo] = useState(defaultToDate);
+  const [createPassword, setCreatePassword] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [editingPasswordLinkId, setEditingPasswordLinkId] = useState("");
+  const [newLinkPassword, setNewLinkPassword] = useState("");
+  const [confirmNewLinkPassword, setConfirmNewLinkPassword] = useState("");
 
   const refreshLinks = (
     page = 1,
@@ -157,14 +172,31 @@ const CreateLink = () => {
       return;
     }
 
+    if (createPassword) {
+      if (!password.trim() || !confirmPassword.trim()) {
+        toast.error("Vui lòng nhập mật khẩu và xác nhận mật khẩu");
+        return;
+      }
+      if (password !== confirmPassword) {
+        toast.error("Mật khẩu và xác nhận mật khẩu không trùng khớp");
+        return;
+      }
+    }
+
     setIsCreating(true);
-    post("shortener", { originalUrl: originalLink })
+    post("shortener", {
+      originalUrl: originalLink,
+      password: createPassword ? password : undefined,
+    })
       .then((response) => {
         if (response?.shortUrl) {
-          setShortLink(`${clientUrl}/${response.shortUrl}`);
+          setShortLink(`${clientUrl}/s/${response.shortUrl}`);
           toast.success("Tạo liên kết thành công!");
           refreshLinks();
           fetchQuota();
+          setCreatePassword(false);
+          setPassword("");
+          setConfirmPassword("");
         } else {
           toast.error("Không thể tạo liên kết");
         }
@@ -274,48 +306,6 @@ const CreateLink = () => {
           </div>
         </div>
       )}
-      {isLoggedIn && (
-        <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-2xl font-semibold text-slate-900">Biểu đồ tăng trưởng</h2>
-              <p className="mt-2 text-sm text-slate-600">Theo dõi số lượng link tạo theo ngày/tuần.</p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <select
-                value={analyticsRange}
-                onChange={(e) => {
-                  setAnalyticsRange(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              >
-                <option value="daily">Theo ngày</option>
-                <option value="weekly">Theo tuần</option>
-              </select>
-              <input
-                type="date"
-                value={analyticsFrom}
-                onChange={(e) => setAnalyticsFrom(e.target.value)}
-                className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
-              <input
-                type="date"
-                value={analyticsTo}
-                onChange={(e) => setAnalyticsTo(e.target.value)}
-                className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
-            </div>
-          </div>
-          <button
-            onClick={fetchAnalytics}
-            className="mb-6 rounded-2xl bg-blue-500 px-4 py-3 text-white shadow-md shadow-blue-500/10 transition hover:bg-blue-600"
-          >
-            Cập nhật biểu đồ
-          </button>
-          <LineChart data={analyticsData} />
-        </section>
-      )}
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
           <div className="mb-4">
@@ -332,6 +322,41 @@ const CreateLink = () => {
                 className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
+            <div className="flex items-center gap-3">
+              <label className="inline-flex items-center gap-2 text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={createPassword}
+                  onChange={(e) => setCreatePassword(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                Tạo mật khẩu
+              </label>
+            </div>
+            {createPassword && (
+              <>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">Mật khẩu</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Nhập mật khẩu"
+                    className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">Xác nhận mật khẩu</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Xác nhận mật khẩu"
+                    className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+              </>
+            )}
             <button
               type="button"
               onClick={createLink}
@@ -445,6 +470,7 @@ const CreateLink = () => {
                       <tr>
                         <th className="px-4 py-3">Tên trang web</th>
                         <th className="px-4 py-3">Link rút gọn</th>
+                        <th className="px-4 py-3">Bảo mật</th>
                         <th className="px-4 py-3">Lượt click</th>
                         <th className="px-4 py-3">Trạng thái</th>
                         <th className="px-4 py-3">Hành động</th>
@@ -460,11 +486,11 @@ const CreateLink = () => {
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <span className="truncate">{clientUrl}/{link.shortUrl}</span>
+                              <span className="truncate">{clientUrl}/s/{link.shortUrl}</span>
                               <button
                                 onClick={() => {
                                   if (navigator.clipboard) {
-                                    navigator.clipboard.writeText(`${clientUrl}/${link.shortUrl}`);
+                                    navigator.clipboard.writeText(`${clientUrl}/s/${link.shortUrl}`);
                                     toast.success('Đã sao chép link rút gọn');
                                   }
                                 }}
@@ -474,9 +500,14 @@ const CreateLink = () => {
                               </button>
                             </div>
                           </td>
+                          <td className="px-4 py-3">
+                            <span className={link.passwordProtected ? 'inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-orange-700' : 'inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700'}>
+                              {link.passwordProtected ? 'Có' : 'Không'}
+                            </span>
+                          </td>
                           <td className="px-4 py-3">{link.clicks ?? 0}</td>
                           <td className="px-4 py-3">{getLinkStatus(link)}</td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 space-y-2 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-2">
                             <button
                               onClick={() => toggleLinkStatus(link)}
                               disabled={isLinkExpired(link)}
@@ -488,6 +519,68 @@ const CreateLink = () => {
                             >
                               {link.status === 'disabled' ? 'Bật' : 'Tắt'}
                             </button>
+                            <button
+                              onClick={() => {
+                                if (editingPasswordLinkId === link._id) {
+                                  setEditingPasswordLinkId("");
+                                  setNewLinkPassword("");
+                                  setConfirmNewLinkPassword("");
+                                } else {
+                                  setEditingPasswordLinkId(link._id);
+                                  setNewLinkPassword("");
+                                  setConfirmNewLinkPassword("");
+                                }
+                              }}
+                              className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 hover:bg-slate-200 transition"
+                            >
+                              {editingPasswordLinkId === link._id ? 'Hủy mật khẩu' : 'Đổi mật khẩu'}
+                            </button>
+                            {editingPasswordLinkId === link._id && (
+                              <div className="flex w-full flex-col gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-3">
+                                <input
+                                  type="password"
+                                  value={newLinkPassword}
+                                  onChange={(e) => setNewLinkPassword(e.target.value)}
+                                  placeholder="Mật khẩu mới"
+                                  className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
+                                />
+                                <input
+                                  type="password"
+                                  value={confirmNewLinkPassword}
+                                  onChange={(e) => setConfirmNewLinkPassword(e.target.value)}
+                                  placeholder="Xác nhận mật khẩu"
+                                  className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!newLinkPassword.trim() || !confirmNewLinkPassword.trim()) {
+                                      toast.error('Vui lòng nhập mật khẩu và xác nhận mật khẩu');
+                                      return;
+                                    }
+                                    if (newLinkPassword !== confirmNewLinkPassword) {
+                                      toast.error('Mật khẩu và xác nhận mật khẩu không khớp');
+                                      return;
+                                    }
+                                    patch(`shortener/${link._id}`, { password: newLinkPassword })
+                                      .then(() => {
+                                        toast.success('Cập nhật mật khẩu liên kết thành công');
+                                        setEditingPasswordLinkId("");
+                                        setNewLinkPassword("");
+                                        setConfirmNewLinkPassword("");
+                                        refreshLinks(currentPage);
+                                      })
+                                      .catch((error) => {
+                                        const message = error.response?.data?.message || 'Không thể cập nhật mật khẩu liên kết';
+                                        toast.error(message);
+                                      });
+                                  }}
+                                  className="rounded-2xl bg-blue-500 px-3 py-2 text-white text-sm hover:bg-blue-600 transition"
+                                >
+                                  Lưu mật khẩu
+                                </button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -526,6 +619,49 @@ const CreateLink = () => {
             )}
           </section>
         </div>
+      )}
+
+      {isLoggedIn && (
+        <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900">Biểu đồ tăng trưởng</h2>
+              <p className="mt-2 text-sm text-slate-600">Theo dõi số lượng link tạo theo ngày/tuần.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <select
+                value={analyticsRange}
+                onChange={(e) => {
+                  setAnalyticsRange(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="daily">Theo ngày</option>
+                <option value="weekly">Theo tuần</option>
+              </select>
+              <input
+                type="date"
+                value={analyticsFrom}
+                onChange={(e) => setAnalyticsFrom(e.target.value)}
+                className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+              <input
+                type="date"
+                value={analyticsTo}
+                onChange={(e) => setAnalyticsTo(e.target.value)}
+                className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+          </div>
+          <button
+            onClick={fetchAnalytics}
+            className="mb-6 rounded-2xl bg-blue-500 px-4 py-3 text-white shadow-md shadow-blue-500/10 transition hover:bg-blue-600"
+          >
+            Cập nhật biểu đồ
+          </button>
+          <LineChart data={analyticsData} />
+        </section>
       )}
     </PageWrapper>
   );
