@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { get, post, patch } from "../utils/request";
 import toast from 'react-hot-toast';
 import { getTokenWithExpiry } from "../constants/localStorage";
 import PageWrapper from "../components/PageWrapper";
+import QrCodePreview from "../components/QrCodePreview";
 
 const getClientUrl = () => {
   const rawUrl = process.env.REACT_APP_CLIENT_URL || window.location.origin;
@@ -111,6 +112,7 @@ const CreateLink = () => {
   const [editingPasswordLinkId, setEditingPasswordLinkId] = useState("");
   const [newLinkPassword, setNewLinkPassword] = useState("");
   const [confirmNewLinkPassword, setConfirmNewLinkPassword] = useState("");
+  const [activeQrLinkId, setActiveQrLinkId] = useState("");
 
   const refreshLinks = (
     page = 1,
@@ -143,6 +145,8 @@ const CreateLink = () => {
     const expiresAt = link.expiresAt ? new Date(link.expiresAt) : null;
     return expiresAt ? expiresAt < new Date() : false;
   };
+
+  const getShortLinkUrl = (link) => `${clientUrl}/s/${link.shortUrl}`;
 
   const toggleLinkStatus = (link) => {
     if (isLinkExpired(link)) {
@@ -478,111 +482,127 @@ const CreateLink = () => {
                     </thead>
                     <tbody className="divide-y divide-slate-200">
                       {paginatedLinks.map((link) => (
-                        <tr key={link._id} className="hover:bg-slate-50">
-                          <td className="px-4 py-3">
-                            <span title={link.originalUrl} className="cursor-help underline decoration-dotted">
-                              {link.siteName ?? 'Không rõ'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <span className="truncate">{clientUrl}/s/{link.shortUrl}</span>
-                              <button
-                                onClick={() => {
-                                  if (navigator.clipboard) {
-                                    navigator.clipboard.writeText(`${clientUrl}/s/${link.shortUrl}`);
-                                    toast.success('Đã sao chép link rút gọn');
-                                  }
-                                }}
-                                className="rounded-full border border-slate-300 bg-slate-100 px-2 py-1 text-xs text-slate-600 hover:bg-slate-200"
-                              >
-                                Copy
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={link.passwordProtected ? 'inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-orange-700' : 'inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700'}>
-                              {link.passwordProtected ? 'Có' : 'Không'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">{link.clicks ?? 0}</td>
-                          <td className="px-4 py-3">{getLinkStatus(link)}</td>
-                          <td className="px-4 py-3 space-y-2 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-2">
-                            <button
-                              onClick={() => toggleLinkStatus(link)}
-                              disabled={isLinkExpired(link)}
-                              className={`rounded-full px-3 py-1 text-sm font-medium transition ${isLinkExpired(link)
-                                ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                                : link.status === 'disabled'
-                                  ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                                  : 'bg-orange-500 text-white hover:bg-orange-600'}`}
-                            >
-                              {link.status === 'disabled' ? 'Bật' : 'Tắt'}
-                            </button>
-                            <button
-                              onClick={() => {
-                                if (editingPasswordLinkId === link._id) {
-                                  setEditingPasswordLinkId("");
-                                  setNewLinkPassword("");
-                                  setConfirmNewLinkPassword("");
-                                } else {
-                                  setEditingPasswordLinkId(link._id);
-                                  setNewLinkPassword("");
-                                  setConfirmNewLinkPassword("");
-                                }
-                              }}
-                              className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 hover:bg-slate-200 transition"
-                            >
-                              {editingPasswordLinkId === link._id ? 'Hủy mật khẩu' : 'Đổi mật khẩu'}
-                            </button>
-                            {editingPasswordLinkId === link._id && (
-                              <div className="flex w-full flex-col gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-3">
-                                <input
-                                  type="password"
-                                  value={newLinkPassword}
-                                  onChange={(e) => setNewLinkPassword(e.target.value)}
-                                  placeholder="Mật khẩu mới"
-                                  className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
-                                />
-                                <input
-                                  type="password"
-                                  value={confirmNewLinkPassword}
-                                  onChange={(e) => setConfirmNewLinkPassword(e.target.value)}
-                                  placeholder="Xác nhận mật khẩu"
-                                  className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
-                                />
+                        <Fragment key={link._id}>
+                          <tr className="hover:bg-slate-50">
+                            <td className="px-4 py-3">
+                              <span title={link.originalUrl} className="cursor-help underline decoration-dotted">
+                                {link.siteName ?? 'Không rõ'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <span className="truncate">{clientUrl}/s/{link.shortUrl}</span>
                                 <button
-                                  type="button"
                                   onClick={() => {
-                                    if (!newLinkPassword.trim() || !confirmNewLinkPassword.trim()) {
-                                      toast.error('Vui lòng nhập mật khẩu và xác nhận mật khẩu');
-                                      return;
+                                    if (navigator.clipboard) {
+                                      navigator.clipboard.writeText(`${clientUrl}/s/${link.shortUrl}`);
+                                      toast.success('Đã sao chép link rút gọn');
                                     }
-                                    if (newLinkPassword !== confirmNewLinkPassword) {
-                                      toast.error('Mật khẩu và xác nhận mật khẩu không khớp');
-                                      return;
-                                    }
-                                    patch(`shortener/${link._id}`, { password: newLinkPassword })
-                                      .then(() => {
-                                        toast.success('Cập nhật mật khẩu liên kết thành công');
-                                        setEditingPasswordLinkId("");
-                                        setNewLinkPassword("");
-                                        setConfirmNewLinkPassword("");
-                                        refreshLinks(currentPage);
-                                      })
-                                      .catch((error) => {
-                                        const message = error.response?.data?.message || 'Không thể cập nhật mật khẩu liên kết';
-                                        toast.error(message);
-                                      });
                                   }}
-                                  className="rounded-2xl bg-blue-500 px-3 py-2 text-white text-sm hover:bg-blue-600 transition"
+                                  className="rounded-full border border-slate-300 bg-slate-100 px-2 py-1 text-xs text-slate-600 hover:bg-slate-200"
                                 >
-                                  Lưu mật khẩu
+                                  Copy
                                 </button>
                               </div>
-                            )}
-                          </td>
-                        </tr>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={link.passwordProtected ? 'inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-orange-700' : 'inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700'}>
+                                {link.passwordProtected ? 'Có' : 'Không'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">{link.clicks ?? 0}</td>
+                            <td className="px-4 py-3">{getLinkStatus(link)}</td>
+                            <td className="px-4 py-3 space-y-2 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-2">
+                              <button
+                                onClick={() => toggleLinkStatus(link)}
+                                disabled={isLinkExpired(link)}
+                                className={`rounded-full px-3 py-1 text-sm font-medium transition ${isLinkExpired(link)
+                                  ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                                  : link.status === 'disabled'
+                                    ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                                    : 'bg-orange-500 text-white hover:bg-orange-600'}`}
+                              >
+                                {link.status === 'disabled' ? 'Bật' : 'Tắt'}
+                              </button>
+                              <button
+                                onClick={() => setActiveQrLinkId(activeQrLinkId === link._id ? "" : link._id)}
+                                disabled={isLinkExpired(link) || link.status === 'disabled'}
+                                className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 hover:bg-slate-200 transition disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
+                              >
+                                {activeQrLinkId === link._id ? 'Ẩn QR' : 'QR'}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (editingPasswordLinkId === link._id) {
+                                    setEditingPasswordLinkId("");
+                                    setNewLinkPassword("");
+                                    setConfirmNewLinkPassword("");
+                                  } else {
+                                    setEditingPasswordLinkId(link._id);
+                                    setNewLinkPassword("");
+                                    setConfirmNewLinkPassword("");
+                                  }
+                                }}
+                                className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 hover:bg-slate-200 transition"
+                              >
+                                {editingPasswordLinkId === link._id ? 'Hủy mật khẩu' : 'Đổi mật khẩu'}
+                              </button>
+                              {editingPasswordLinkId === link._id && (
+                                <div className="flex w-full flex-col gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-3">
+                                  <input
+                                    type="password"
+                                    value={newLinkPassword}
+                                    onChange={(e) => setNewLinkPassword(e.target.value)}
+                                    placeholder="Mật khẩu mới"
+                                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
+                                  />
+                                  <input
+                                    type="password"
+                                    value={confirmNewLinkPassword}
+                                    onChange={(e) => setConfirmNewLinkPassword(e.target.value)}
+                                    placeholder="Xác nhận mật khẩu"
+                                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (!newLinkPassword.trim() || !confirmNewLinkPassword.trim()) {
+                                        toast.error('Vui lòng nhập mật khẩu và xác nhận mật khẩu');
+                                        return;
+                                      }
+                                      if (newLinkPassword !== confirmNewLinkPassword) {
+                                        toast.error('Mật khẩu và xác nhận mật khẩu không khớp');
+                                        return;
+                                      }
+                                      patch(`shortener/${link._id}`, { password: newLinkPassword })
+                                        .then(() => {
+                                          toast.success('Cập nhật mật khẩu liên kết thành công');
+                                          setEditingPasswordLinkId("");
+                                          setNewLinkPassword("");
+                                          setConfirmNewLinkPassword("");
+                                          refreshLinks(currentPage);
+                                        })
+                                        .catch((error) => {
+                                          const message = error.response?.data?.message || 'Không thể cập nhật mật khẩu liên kết';
+                                          toast.error(message);
+                                        });
+                                    }}
+                                    className="rounded-2xl bg-blue-500 px-3 py-2 text-white text-sm hover:bg-blue-600 transition"
+                                  >
+                                    Lưu mật khẩu
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                          {activeQrLinkId === link._id && (
+                            <tr>
+                              <td colSpan={6} className="px-4 py-4">
+                                <QrCodePreview url={getShortLinkUrl(link)} />
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
                       ))}
                     </tbody>
                   </table>
