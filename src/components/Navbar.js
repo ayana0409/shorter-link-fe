@@ -60,37 +60,36 @@ const Navbar = () => {
                             );
                         })}
                     </nav>
-                </div>
-
-                <div className="flex flex-col gap-2 px-4 pb-4 sm:hidden">
-                    {loggedIn ? (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setMenuOpen(false);
-                                handleLogout();
-                            }}
-                            className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-                        >
-                            Đăng xuất
-                        </button>
-                    ) : location.pathname === '/login' ? (
-                        <Link
-                            to="/home"
-                            onClick={() => setMenuOpen(false)}
-                            className="rounded-2xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-600"
-                        >
-                            Trang chủ
-                        </Link>
-                    ) : (
-                        <Link
-                            to="/login"
-                            onClick={() => setMenuOpen(false)}
-                            className="rounded-2xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-600"
-                        >
-                            Đăng nhập
-                        </Link>
-                    )}
+                    <div className="mt-3 flex flex-col gap-2 sm:hidden px-4 pb-4">
+                        {loggedIn ? (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setMenuOpen(false);
+                                    handleLogout();
+                                }}
+                                className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                            >
+                                Đăng xuất
+                            </button>
+                        ) : location.pathname === '/login' ? (
+                            <Link
+                                to="/home"
+                                onClick={() => setMenuOpen(false)}
+                                className="rounded-2xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-600"
+                            >
+                                Trang chủ
+                            </Link>
+                        ) : (
+                            <Link
+                                to="/login"
+                                onClick={() => setMenuOpen(false)}
+                                className="rounded-2xl bg-indigo-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-600"
+                            >
+                                Đăng nhập
+                            </Link>
+                        )}
+                    </div>
                 </div>
 
                 <div className="hidden items-center gap-3 sm:flex">
