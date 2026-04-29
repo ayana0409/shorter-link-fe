@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import AppRoutes from './routes/AppRoutes';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import { Toaster } from 'react-hot-toast';
 import { get } from './utils/request';
 
@@ -68,15 +69,21 @@ function App() {
   }
 
   return (
-    <div className='min-h-screen bg-slate-50 text-slate-900'>
+    <div className='flex min-h-screen flex-col bg-slate-50 text-slate-900'>
       <Toaster position='top-right' reverseOrder={false} />
 
       <BrowserRouter>
-        <Navbar />
-        <AppRoutes />
+        <div className='flex flex-grow flex-col'>
+          <Navbar />
+          <div className='flex-grow'>
+            <AppRoutes />
+          </div>
+          <Footer />
+        </div>
       </BrowserRouter>
     </div>
   );
 }
 
 export default App;
+
