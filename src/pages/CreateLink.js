@@ -340,7 +340,7 @@ const CreateLink = () => {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm text-slate-500">Xin chào</p>
-              <p className="text-lg font-semibold text-slate-900">{quotaInfo.username}</p>
+              <p className="text-lg font-semibold text-slate-900">{quotaInfo.fullName}</p>
             </div>
             <div className="rounded-3xl bg-white p-4 shadow-sm shadow-slate-200">
               {quotaInfo.unlimited ? (
@@ -457,8 +457,8 @@ const CreateLink = () => {
               onClick={createLink}
               disabled={isCreating}
               className={`w-full rounded-2xl px-4 py-3 text-white shadow-md transition ${isCreating
-                  ? 'bg-slate-400 cursor-not-allowed'
-                  : 'bg-blue-500 hover:bg-blue-600'
+                ? 'bg-slate-400 cursor-not-allowed'
+                : 'bg-blue-500 hover:bg-blue-600'
                 }`}
             >
               {isCreating ? 'Đang rút gọn...' : 'Rút gọn'}
@@ -585,7 +585,12 @@ const CreateLink = () => {
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
-                                <span className="truncate">{clientUrl}/s/{link.shortUrl}</span>
+                                <span
+                                  onClick={() => window.open(`${clientUrl}/s/${link.shortUrl}`, '_blank')}
+                                  className="truncate cursor-pointer text-blue-500 hover:text-blue-700 hover:underline"
+                                >
+                                  {clientUrl}/s/{link.shortUrl}
+                                </span>
                                 <button
                                   onClick={() => {
                                     if (navigator.clipboard) {
