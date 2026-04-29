@@ -105,7 +105,7 @@ const AdminPage = () => {
 
     useEffect(() => {
         const role = getTokenRole();
-        if (!getTokenWithExpiry() || role !== 'admin') {
+        if (!getTokenWithExpiry() || (role !== 'admin' && role !== 'manager')) {
             navigate('/not-found', { replace: true });
             return;
         }
@@ -115,7 +115,7 @@ const AdminPage = () => {
     }, [navigate]);
 
     useEffect(() => {
-        if (!getTokenWithExpiry() || getTokenRole() !== 'admin') {
+        if (!getTokenWithExpiry() || (getTokenRole() !== 'admin' && getTokenRole() !== 'manager')) {
             return;
         }
 

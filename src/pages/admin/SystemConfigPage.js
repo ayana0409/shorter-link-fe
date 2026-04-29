@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { get, patch } from '../../utils/request';
 import toast from 'react-hot-toast';
+import { getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
 import PageWrapper from '../../components/PageWrapper';
 
 const SystemConfigPage = () => {
+    const navigate = useNavigate();
     const [configs, setConfigs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [updatingKey, setUpdatingKey] = useState(null);
@@ -18,8 +21,13 @@ const SystemConfigPage = () => {
     };
 
     useEffect(() => {
+        const role = getTokenRole();
+        if (!getTokenWithExpiry() || role !== 'admin') {
+            navigate('/not-found', { replace: true });
+            return;
+        }
         fetchConfigs();
-    }, []);
+    }, [navigate]);
 
     const fetchConfigs = async () => {
         try {

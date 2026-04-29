@@ -109,7 +109,7 @@ const AccountManagementPage = () => {
 
     useEffect(() => {
         const role = getTokenRole();
-        if (!getTokenWithExpiry() || role !== 'admin') {
+        if (!getTokenWithExpiry() || (role !== 'admin' && role !== 'manager')) {
             navigate('/not-found', { replace: true });
             return;
         }
@@ -170,6 +170,7 @@ const AccountManagementPage = () => {
                         <select
                             value={newAccount.role}
                             onChange={(e) => setNewAccount({ ...newAccount, role: e.target.value })}
+                            disabled={getTokenRole() === 'manager'}
                             className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         >
                             <option value="user">User</option>
