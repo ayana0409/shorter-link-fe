@@ -45,7 +45,6 @@ const Login = () => {
         return null;
     }
 
-
     const handleChange = (e) => {
         setUser({
             ...user,
@@ -59,7 +58,8 @@ const Login = () => {
             subtitle="Truy cập vào trang quản lý liên kết của bạn"
         >
             <div className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm shadow-slate-300/10">
-                <h2 className="text-3xl font-bold mb-6 text-center text-slate-900">Đăng nhập</h2>
+                <h2 className="text-3xl font-bold mb-2 text-center text-slate-900">Đăng nhập</h2>
+                <p className="text-center text-slate-600 mb-6">Hãy đăng nhập để bắt đầu sử dụng</p>
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
                         <label className="mb-2 block text-sm font-medium text-slate-700">Username</label>

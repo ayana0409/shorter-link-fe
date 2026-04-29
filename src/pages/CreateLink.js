@@ -89,6 +89,18 @@ const CreateLink = () => {
   const defaultToDate = formatDate(new Date());
   const defaultFromDate = formatDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
 
+  // Convert datetime-local to UTC ISO string
+  // The datetime-local value represents time in +7 timezone (GMT+7)
+  // We need to convert it to UTC by subtracting 7 hours
+  const convertToUTC = (datetimeLocal) => {
+    if (!datetimeLocal) return undefined;
+    // datetime-local format: "YYYY-MM-DDTHH:mm"
+    // Parse as UTC time, then subtract 7 hours to get the actual UTC time
+    const utcDate = new Date(datetimeLocal + ':00Z');
+    const actualUtc = new Date(utcDate.getTime() - 7 * 60 * 60 * 1000);
+    return actualUtc.toISOString();
+  };
+
   const [originalLink, setOriginalLink] = useState("");
   const [shortLink, setShortLink] = useState("");
   const [links, setLinks] = useState([]);
@@ -113,6 +125,10 @@ const CreateLink = () => {
   const [newLinkPassword, setNewLinkPassword] = useState("");
   const [confirmNewLinkPassword, setConfirmNewLinkPassword] = useState("");
   const [activeQrLinkId, setActiveQrLinkId] = useState("");
+  const [siteName, setSiteName] = useState("");
+  const [validityFromDate, setValidityFromDate] = useState("");
+  const [validityToDate, setValidityToDate] = useState("");
+  const [noExpiration, setNoExpiration] = useState(false);
 
   const refreshLinks = (
     page = 1,
@@ -142,6 +158,11 @@ const CreateLink = () => {
   };
 
   const isLinkExpired = (link) => {
+    // If link has no expiration flag set, it never expires
+    if (link.noExpiration) {
+      return false;
+    }
+
     const expiresAt = link.expiresAt ? new Date(link.expiresAt) : null;
     return expiresAt ? expiresAt < new Date() : false;
   };
@@ -187,11 +208,27 @@ const CreateLink = () => {
       }
     }
 
+    // Validate date range if not "no expiration"
+    if (!noExpiration && validityFromDate && validityToDate) {
+      const fromDate = new Date(validityFromDate);
+      const toDate = new Date(validityToDate);
+      if (fromDate >= toDate) {
+        toast.error("Thời gian bắt đầu phải trước thời gian kết thúc");
+        return;
+      }
+    }
+
     setIsCreating(true);
-    post("shortener", {
+    const payload = {
       originalUrl: originalLink,
       password: createPassword ? password : undefined,
-    })
+      siteName: siteName || undefined,
+      validityFromDate: convertToUTC(validityFromDate),
+      validityToDate: convertToUTC(validityToDate),
+      noExpiration: noExpiration,
+    };
+
+    post("shortener", payload)
       .then((response) => {
         if (response?.shortUrl) {
           setShortLink(`${clientUrl}/s/${response.shortUrl}`);
@@ -201,6 +238,10 @@ const CreateLink = () => {
           setCreatePassword(false);
           setPassword("");
           setConfirmPassword("");
+          setSiteName("");
+          setValidityFromDate("");
+          setValidityToDate("");
+          setNoExpiration(false);
         } else {
           toast.error("Không thể tạo liên kết");
         }
@@ -217,6 +258,10 @@ const CreateLink = () => {
   const getLinkStatus = (link) => {
     if (link.status === 'disabled') {
       return 'Đã xóa';
+    }
+
+    if (link.noExpiration) {
+      return 'Không hết hạn';
     }
 
     const expiresAt = link.expiresAt ? new Date(link.expiresAt) : null;
@@ -361,11 +406,60 @@ const CreateLink = () => {
                 </div>
               </>
             )}
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">Tên trang web (tùy chọn)</label>
+              <input
+                type="text"
+                value={siteName}
+                onChange={(e) => setSiteName(e.target.value)}
+                placeholder="Nhập tên trang web (nếu không nhập, sẽ tự động lấy)"
+                className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="inline-flex items-center gap-2 text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={noExpiration}
+                  onChange={(e) => setNoExpiration(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                Không hết hạn
+              </label>
+            </div>
+            {!noExpiration && (
+              <>
+                <p className="text-xs text-slate-500 mb-2">💡 Lưu ý: Múi giờ +7 (Giờ Hà Nội)</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Thời gian bắt đầu (tùy chọn)</label>
+                    <input
+                      type="datetime-local"
+                      value={validityFromDate}
+                      onChange={(e) => setValidityFromDate(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Thời gian kết thúc (tùy chọn)</label>
+                    <input
+                      type="datetime-local"
+                      value={validityToDate}
+                      onChange={(e) => setValidityToDate(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
             <button
               type="button"
               onClick={createLink}
               disabled={isCreating}
-              className={`w-full rounded-2xl px-4 py-3 text-white shadow-md transition ${isCreating ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}
+              className={`w-full rounded-2xl px-4 py-3 text-white shadow-md transition ${isCreating
+                  ? 'bg-slate-400 cursor-not-allowed'
+                  : 'bg-blue-500 hover:bg-blue-600'
+                }`}
             >
               {isCreating ? 'Đang rút gọn...' : 'Rút gọn'}
             </button>
@@ -511,7 +605,25 @@ const CreateLink = () => {
                               </span>
                             </td>
                             <td className="px-4 py-3">{link.clicks ?? 0}</td>
-                            <td className="px-4 py-3">{getLinkStatus(link)}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex flex-col gap-1">
+                                <span>{getLinkStatus(link)}</span>
+                                {link.validityFromDate && (
+                                  <span className="text-xs text-slate-500">
+                                    Bắt đầu: {new Date(link.validityFromDate).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
+                                  </span>
+                                )}
+                                {link.noExpiration ? (
+                                  <span className="text-xs text-green-600">Không hết hạn</span>
+                                ) : (
+                                  link.expiresAt && (
+                                    <span className="text-xs text-slate-500">
+                                      Hết hạn: {new Date(link.expiresAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
+                                    </span>
+                                  )
+                                )}
+                              </div>
+                            </td>
                             <td className="px-4 py-3 space-y-2 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-2">
                               <button
                                 onClick={() => toggleLinkStatus(link)}
