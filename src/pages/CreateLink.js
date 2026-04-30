@@ -341,6 +341,7 @@ const CreateLink = () => {
             <div>
               <p className="text-sm text-slate-500">Xin chào</p>
               <p className="text-lg font-semibold text-slate-900">{quotaInfo.fullName}</p>
+              <p className="text-sm text-slate-500">Level: {quotaInfo.level ? quotaInfo.level.name : 'Free'}</p>
             </div>
             <div className="rounded-3xl bg-white p-4 shadow-sm shadow-slate-200">
               {quotaInfo.unlimited ? (
@@ -371,39 +372,43 @@ const CreateLink = () => {
                 className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
-            <div className="flex items-center gap-3">
-              <label className="inline-flex items-center gap-2 text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={createPassword}
-                  onChange={(e) => setCreatePassword(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                Tạo mật khẩu
-              </label>
-            </div>
-            {createPassword && (
+            {quotaInfo?.level?.allowPassword && (
               <>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Mật khẩu</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Nhập mật khẩu"
-                    className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  />
+                <div className="flex items-center gap-3">
+                  <label className="inline-flex items-center gap-2 text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={createPassword}
+                      onChange={(e) => setCreatePassword(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    Tạo mật khẩu
+                  </label>
                 </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Xác nhận mật khẩu</label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Xác nhận mật khẩu"
-                    className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  />
-                </div>
+                {createPassword && (
+                  <>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-slate-700">Mật khẩu</label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Nhập mật khẩu"
+                        className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-slate-700">Xác nhận mật khẩu</label>
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Xác nhận mật khẩu"
+                        className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
             <div>
@@ -416,40 +421,46 @@ const CreateLink = () => {
                 className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
-            <div className="flex items-center gap-3">
-              <label className="inline-flex items-center gap-2 text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={noExpiration}
-                  onChange={(e) => setNoExpiration(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
-                Không hết hạn
-              </label>
-            </div>
-            {!noExpiration && (
+
+            {quotaInfo?.level?.allowCustomExpiration && (
               <>
-                <p className="text-xs text-slate-500 mb-2">💡 Lưu ý: Múi giờ +7 (Giờ Hà Nội)</p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">Thời gian bắt đầu (tùy chọn)</label>
+                <div className="flex items-center gap-3">
+                  <label className="inline-flex items-center gap-2 text-slate-700">
                     <input
-                      type="datetime-local"
-                      value={validityFromDate}
-                      onChange={(e) => setValidityFromDate(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      type="checkbox"
+                      checked={noExpiration}
+                      onChange={(e) => setNoExpiration(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                     />
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">Thời gian kết thúc (tùy chọn)</label>
-                    <input
-                      type="datetime-local"
-                      value={validityToDate}
-                      onChange={(e) => setValidityToDate(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    />
-                  </div>
+                    Không hết hạn
+                  </label>
                 </div>
+                {!noExpiration && (
+                  <>
+                    <p className="text-xs text-slate-500 mb-2">💡 Lưu ý: Múi giờ +7 (Giờ Hà Nội)</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">Thời gian bắt đầu (tùy chọn)</label>
+                        <input
+                          type="datetime-local"
+                          value={validityFromDate}
+                          onChange={(e) => setValidityFromDate(e.target.value)}
+                          className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">Thời gian kết thúc (tùy chọn) {!quotaInfo?.level?.allowCustomExpiration && "(Yêu cầu nâng cấp level)"}</label>
+                        <input
+                          type="datetime-local"
+                          value={validityToDate}
+                          onChange={(e) => setValidityToDate(e.target.value)}
+                          disabled={!quotaInfo?.level?.allowCustomExpiration}
+                          className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:opacity-50"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
               </>
             )}
             <button
@@ -648,67 +659,71 @@ const CreateLink = () => {
                               >
                                 {activeQrLinkId === link._id ? 'Ẩn QR' : 'QR'}
                               </button>
-                              <button
-                                onClick={() => {
-                                  if (editingPasswordLinkId === link._id) {
-                                    setEditingPasswordLinkId("");
-                                    setNewLinkPassword("");
-                                    setConfirmNewLinkPassword("");
-                                  } else {
-                                    setEditingPasswordLinkId(link._id);
-                                    setNewLinkPassword("");
-                                    setConfirmNewLinkPassword("");
-                                  }
-                                }}
-                                className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 hover:bg-slate-200 transition"
-                              >
-                                {editingPasswordLinkId === link._id ? 'Hủy mật khẩu' : 'Đổi mật khẩu'}
-                              </button>
-                              {editingPasswordLinkId === link._id && (
-                                <div className="flex w-full flex-col gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-3">
-                                  <input
-                                    type="password"
-                                    value={newLinkPassword}
-                                    onChange={(e) => setNewLinkPassword(e.target.value)}
-                                    placeholder="Mật khẩu mới"
-                                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
-                                  />
-                                  <input
-                                    type="password"
-                                    value={confirmNewLinkPassword}
-                                    onChange={(e) => setConfirmNewLinkPassword(e.target.value)}
-                                    placeholder="Xác nhận mật khẩu"
-                                    className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
-                                  />
+                              {quotaInfo?.level?.allowPassword && (
+                                <>
                                   <button
-                                    type="button"
                                     onClick={() => {
-                                      if (!newLinkPassword.trim() || !confirmNewLinkPassword.trim()) {
-                                        toast.error('Vui lòng nhập mật khẩu và xác nhận mật khẩu');
-                                        return;
+                                      if (editingPasswordLinkId === link._id) {
+                                        setEditingPasswordLinkId("");
+                                        setNewLinkPassword("");
+                                        setConfirmNewLinkPassword("");
+                                      } else {
+                                        setEditingPasswordLinkId(link._id);
+                                        setNewLinkPassword("");
+                                        setConfirmNewLinkPassword("");
                                       }
-                                      if (newLinkPassword !== confirmNewLinkPassword) {
-                                        toast.error('Mật khẩu và xác nhận mật khẩu không khớp');
-                                        return;
-                                      }
-                                      patch(`shortener/${link._id}`, { password: newLinkPassword })
-                                        .then(() => {
-                                          toast.success('Cập nhật mật khẩu liên kết thành công');
-                                          setEditingPasswordLinkId("");
-                                          setNewLinkPassword("");
-                                          setConfirmNewLinkPassword("");
-                                          refreshLinks(currentPage);
-                                        })
-                                        .catch((error) => {
-                                          const message = error.response?.data?.message || 'Không thể cập nhật mật khẩu liên kết';
-                                          toast.error(message);
-                                        });
                                     }}
-                                    className="rounded-2xl bg-blue-500 px-3 py-2 text-white text-sm hover:bg-blue-600 transition"
+                                    className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 hover:bg-slate-200 transition"
                                   >
-                                    Lưu mật khẩu
+                                    {editingPasswordLinkId === link._id ? 'Hủy mật khẩu' : 'Đổi mật khẩu'}
                                   </button>
-                                </div>
+                                  {editingPasswordLinkId === link._id && (
+                                    <div className="flex w-full flex-col gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-3">
+                                      <input
+                                        type="password"
+                                        value={newLinkPassword}
+                                        onChange={(e) => setNewLinkPassword(e.target.value)}
+                                        placeholder="Mật khẩu mới"
+                                        className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
+                                      />
+                                      <input
+                                        type="password"
+                                        value={confirmNewLinkPassword}
+                                        onChange={(e) => setConfirmNewLinkPassword(e.target.value)}
+                                        placeholder="Xác nhận mật khẩu"
+                                        className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (!newLinkPassword.trim() || !confirmNewLinkPassword.trim()) {
+                                            toast.error('Vui lòng nhập mật khẩu và xác nhận mật khẩu');
+                                            return;
+                                          }
+                                          if (newLinkPassword !== confirmNewLinkPassword) {
+                                            toast.error('Mật khẩu và xác nhận mật khẩu không khớp');
+                                            return;
+                                          }
+                                          patch(`shortener/${link._id}`, { password: newLinkPassword })
+                                            .then(() => {
+                                              toast.success('Cập nhật mật khẩu liên kết thành công');
+                                              setEditingPasswordLinkId("");
+                                              setNewLinkPassword("");
+                                              setConfirmNewLinkPassword("");
+                                              refreshLinks(currentPage);
+                                            })
+                                            .catch((error) => {
+                                              const message = error.response?.data?.message || 'Không thể cập nhật mật khẩu liên kết';
+                                              toast.error(message);
+                                            });
+                                        }}
+                                        className="rounded-2xl bg-blue-500 px-3 py-2 text-white text-sm hover:bg-blue-600 transition"
+                                      >
+                                        Lưu mật khẩu
+                                      </button>
+                                    </div>
+                                  )}
+                                </>
                               )}
                             </td>
                           </tr>
@@ -805,3 +820,4 @@ const CreateLink = () => {
 };
 
 export default CreateLink;
+

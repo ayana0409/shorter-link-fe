@@ -2,17 +2,22 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { get, post, patch } from '../../utils/request';
 import toast from 'react-hot-toast';
-import { getTokenPayload, getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
+import { getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
 import PageWrapper from '../../components/PageWrapper';
 
 const AccountManagementPage = () => {
     const [accounts, setAccounts] = useState([]);
+    const [levels, setLevels] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState('createdAt');
     const [sortOrder, setSortOrder] = useState('desc');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [statusUpdatingId, setStatusUpdatingId] = useState(null);
+    const [levelUpdatingId, setLevelUpdatingId] = useState(null);
+    const [selectedAccountForLevel, setSelectedAccountForLevel] = useState(null);
+    const [selectedLevelId, setSelectedLevelId] = useState('');
+    const [levelExpirationDate, setLevelExpirationDate] = useState('');
     const [newAccount, setNewAccount] = useState({
         username: '',
         fullname: '',
@@ -56,6 +61,19 @@ const AccountManagementPage = () => {
             });
     };
 
+    const loadLevels = () => {
+        const params = new URLSearchParams();
+        params.append('sortBy', 'price');
+
+        get(`level?${params.toString()}`)
+            .then((response) => {
+                setLevels(Array.isArray(response?.data) ? response.data : []);
+            })
+            .catch((error) => {
+                console.error('Failed to load levels:', error);
+            });
+    };
+
     const createAccount = () => {
         if (isCreating) {
             return;
@@ -82,24 +100,44 @@ const AccountManagementPage = () => {
             });
     };
 
-    const toggleAccountStatus = (account) => {
-        const currentUser = getTokenPayload();
-        if (currentUser?._id === account._id || currentUser?.username === account.username) {
-            toast.error('Không thể khóa tài khoản đang đăng nhập');
-            return;
-        }
+    const updateLevel = (accountId, levelId, levelExpirationDate) => {
+        if (levelUpdatingId) return;
 
-        const nextStatus = !account.isActive;
-        const accountId = account._id || account.id;
-        setStatusUpdatingId(accountId);
+        setLevelUpdatingId(accountId);
 
-        patch(`account/${accountId}/active`, { isActive: nextStatus })
+        patch(`account/${accountId}/level`, {
+            levelId,
+            levelExpirationDate,
+        })
             .then(() => {
-                toast.success(`Tài khoản ${nextStatus ? 'đã được mở khóa' : 'đã bị khóa'}`);
+                toast.success('Cập nhật level thành công');
                 loadAccounts(currentPage);
             })
             .catch((error) => {
-                const message = error.response?.data?.message || 'Không thể thay đổi trạng thái tài khoản';
+                const message =
+                    error.response?.data?.message ||
+                    'Không thể cập nhật level';
+                toast.error(message);
+            })
+            .finally(() => {
+                setLevelUpdatingId(null);
+            });
+    };
+
+    const toggleAccountStatus = (accountId, status) => {
+        if (statusUpdatingId) return;
+
+        setStatusUpdatingId(accountId);
+
+        patch(`account/${accountId}/status`, { status })
+            .then(() => {
+                toast.success('Cập nhật trạng thái thành công');
+                loadAccounts(currentPage);
+            })
+            .catch((error) => {
+                const message =
+                    error.response?.data?.message ||
+                    'Không thể thay đổi trạng thái tài khoản';
                 toast.error(message);
             })
             .finally(() => {
@@ -115,6 +153,7 @@ const AccountManagementPage = () => {
         }
 
         loadAccounts(1);
+        loadLevels();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navigate]);
 
@@ -238,6 +277,7 @@ const AccountManagementPage = () => {
                                 <th className="px-4 py-3 text-left">Username</th>
                                 <th className="px-4 py-3 text-left">Fullname</th>
                                 <th className="px-4 py-3 text-left">Role</th>
+                                <th className="px-4 py-3 text-left">Level</th>
                                 <th className="px-4 py-3 text-left">Trạng thái</th>
                                 <th className="px-4 py-3 text-left">Hành động</th>
                             </tr>
@@ -248,6 +288,7 @@ const AccountManagementPage = () => {
                                     <td className="px-4 py-3">{account.username}</td>
                                     <td className="px-4 py-3">{account.fullname}</td>
                                     <td className="px-4 py-3">{account.role}</td>
+                                    <td className="px-4 py-3">{account.level ? account.level.name : 'Free'}</td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-3">
                                             <span className={account.isActive ? 'inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700' : 'inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700'}>
@@ -267,12 +308,24 @@ const AccountManagementPage = () => {
                                         </div>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <Link
-                                            to={`/admin/${account._id || account.id}`}
-                                            className="inline-flex rounded-full bg-blue-500 px-3 py-1 text-sm text-white transition hover:bg-blue-600"
-                                        >
-                                            Xem chi tiết
-                                        </Link>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedAccountForLevel(account);
+                                                    setSelectedLevelId(account.level?._id || '');
+                                                    setLevelExpirationDate(account.levelExpirationDate ? new Date(account.levelExpirationDate).toISOString().slice(0, 16) : '');
+                                                }}
+                                                className="inline-flex rounded-full bg-green-500 px-3 py-1 text-sm text-white transition hover:bg-green-600"
+                                            >
+                                                Update Level
+                                            </button>
+                                            <Link
+                                                to={`/admin/${account._id || account.id}`}
+                                                className="inline-flex rounded-full bg-blue-500 px-3 py-1 text-sm text-white transition hover:bg-blue-600"
+                                            >
+                                                Xem chi tiết
+                                            </Link>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -306,6 +359,66 @@ const AccountManagementPage = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Level Update Modal */}
+            {selectedAccountForLevel && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
+                        <h3 className="mb-4 text-lg font-semibold">Cập nhật Level cho {selectedAccountForLevel.username}</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700">Level</label>
+                                <select
+                                    value={selectedLevelId}
+                                    onChange={(e) => setSelectedLevelId(e.target.value)}
+                                    className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                >
+                                    {levels.map((level) => (
+                                        <option key={level._id} value={level._id}>
+                                            {level.name} - ${level.price}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700">Ngày hết hạn</label>
+                                <input
+                                    type="datetime-local"
+                                    value={levelExpirationDate}
+                                    onChange={(e) => setLevelExpirationDate(e.target.value)}
+                                    className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-6 flex gap-3">
+                            <button
+                                onClick={() => {
+                                    const levelId = selectedLevelId || null;
+                                    const expiration = levelExpirationDate ? new Date(levelExpirationDate) : null;
+                                    updateLevel(selectedAccountForLevel._id, levelId, expiration);
+                                    setSelectedAccountForLevel(null);
+                                    setSelectedLevelId('');
+                                    setLevelExpirationDate('');
+                                }}
+                                disabled={levelUpdatingId === selectedAccountForLevel._id}
+                                className="flex-1 rounded-2xl bg-blue-500 px-4 py-3 text-white transition hover:bg-blue-600 disabled:opacity-50"
+                            >
+                                {levelUpdatingId === selectedAccountForLevel._id ? 'Đang cập nhật...' : 'Cập nhật'}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setSelectedAccountForLevel(null);
+                                    setSelectedLevelId('');
+                                    setLevelExpirationDate('');
+                                }}
+                                className="flex-1 rounded-2xl bg-slate-200 px-4 py-3 text-slate-700 transition hover:bg-slate-300"
+                            >
+                                Hủy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </PageWrapper>
     );
 };

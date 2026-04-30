@@ -6,7 +6,7 @@ import AccountLocked from "../pages/AccountLocked";
 import CreateLink from "../pages/CreateLink";
 import { RegisterPage } from "../pages/accounts";
 import { LoginPage } from "../pages/auth";
-import { AdminPage, AccountManagementPage, AccountDetailPage, AuditLogPage, SystemConfigPage } from "../pages/admin";
+import { AdminPage, AccountManagementPage, AccountDetailPage, AuditLogPage, SystemConfigPage, LevelManagementPage } from "../pages/admin";
 
 const ProtectedRoute = ({ element }) => {
   const isAuthenticated = Boolean(getTokenWithExpiry());
@@ -21,6 +21,7 @@ const AppRoutes = () => {
       <Route path="/locked" element={<AccountLocked />} />
       <Route path="/home" element={<ProtectedRoute element={<CreateLink />} />} />
       <Route path="/admin" element={<ProtectedRoute element={<AdminPage />} />} />
+      <Route path="/admin/levels" element={<ProtectedRoute element={<LevelManagementPage />} />} />
       <Route path="/admin/config" element={<ProtectedRoute element={<SystemConfigPage />} />} />
       <Route path="/admin/accounts" element={<ProtectedRoute element={<AccountManagementPage />} />} />
       <Route path="/admin/audit" element={<ProtectedRoute element={<AuditLogPage />} />} />
