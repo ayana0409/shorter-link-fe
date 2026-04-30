@@ -60,8 +60,16 @@ const Navbar = () => {
             <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
                 <div className="flex flex-1 items-center justify-between gap-3">
                     <Link to="/home" className="flex items-center gap-3 text-lg font-semibold text-slate-900">
-                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-500 text-white shadow-sm shadow-indigo-500/10">S</span>
-                        <span>Shorter Link</span>
+                        <div className="h-12 w-12 overflow-visible">
+                            <img
+                                src="/logo512.png"
+                                alt="Logo"
+                                className="h-12 w-12 scale-150 origin-center"
+                            />
+                        </div>
+                        <span className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent font-bold">
+                            Shorter Link
+                        </span>
                     </Link>
 
                     <button
