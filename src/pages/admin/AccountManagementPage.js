@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { get, post, patch } from '../../utils/request';
 import toast from 'react-hot-toast';
-import { getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
+import { getTokenPayload, getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
 import PageWrapper from '../../components/PageWrapper';
 
 const AccountManagementPage = () => {
@@ -124,20 +124,23 @@ const AccountManagementPage = () => {
             });
     };
 
-    const toggleAccountStatus = (accountId, status) => {
-        if (statusUpdatingId) return;
+    const toggleAccountStatus = (account) => {
+        const currentUser = getTokenPayload();
+        if (currentUser?._id === account._id || currentUser?.username === account.username) {
+            toast.error('Không thể khóa tài khoản đang đăng nhập');
+            return;
+        }
 
+        const nextStatus = !account.isActive;
+        const accountId = account._id || account.id;
         setStatusUpdatingId(accountId);
-
-        patch(`account/${accountId}/status`, { status })
+        patch(`account/${accountId}/active`, { isActive: nextStatus })
             .then(() => {
-                toast.success('Cập nhật trạng thái thành công');
+                toast.success(`Tài khoản ${nextStatus ? 'đã được mở khóa' : 'đã bị khóa'}`);
                 loadAccounts(currentPage);
             })
             .catch((error) => {
-                const message =
-                    error.response?.data?.message ||
-                    'Không thể thay đổi trạng thái tài khoản';
+                const message = error.response?.data?.message || 'Không thể thay đổi trạng thái tài khoản';
                 toast.error(message);
             })
             .finally(() => {
