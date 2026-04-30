@@ -4,7 +4,7 @@ import { getTokenRole, getTokenWithExpiry, removeToken } from '../constants/loca
 
 const navItems = [
     { label: 'Home', to: '/home', roles: ['user', 'admin', 'manager', null] },
-    { label: 'Biểu đồ admin', to: '/admin', roles: ['admin', 'manager'] },
+    { label: 'Biểu đồ admin', to: '/admin', roles: ['admin'] },
     { label: 'Quản lý tài khoản', to: '/admin/accounts', roles: ['admin', 'manager'] },
     { label: 'Nhật ký hoạt động', to: '/admin/audit', roles: ['admin'] },
     { label: 'Cấu hình hệ thống', to: '/admin/config', roles: ['admin'] },
