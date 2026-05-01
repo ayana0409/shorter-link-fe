@@ -376,6 +376,9 @@ const AccountManagementPage = () => {
                                     onChange={(e) => setSelectedLevelId(e.target.value)}
                                     className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 >
+                                    <option key={'free'} value={''}>
+                                        Free - $0
+                                    </option>
                                     {levels.map((level) => (
                                         <option key={level._id} value={level._id}>
                                             {level.name} - ${level.price}

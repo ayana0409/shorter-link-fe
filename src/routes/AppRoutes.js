@@ -7,6 +7,7 @@ import CreateLink from "../pages/CreateLink";
 import { RegisterPage } from "../pages/accounts";
 import { LoginPage } from "../pages/auth";
 import { AdminPage, AccountManagementPage, AccountDetailPage, AuditLogPage, SystemConfigPage, LevelManagementPage } from "../pages/admin";
+import RoleProtectedRoute from "../components/RoleProtectedRoute";
 
 const ProtectedRoute = ({ element }) => {
   const isAuthenticated = Boolean(getTokenWithExpiry());
@@ -20,12 +21,12 @@ const AppRoutes = () => {
       <Route path="/not-found" element={<NotFountOrExpire />} />
       <Route path="/locked" element={<AccountLocked />} />
       <Route path="/home" element={<ProtectedRoute element={<CreateLink />} />} />
-      <Route path="/admin" element={<ProtectedRoute element={<AdminPage />} />} />
-      <Route path="/admin/levels" element={<ProtectedRoute element={<LevelManagementPage />} />} />
-      <Route path="/admin/config" element={<ProtectedRoute element={<SystemConfigPage />} />} />
-      <Route path="/admin/accounts" element={<ProtectedRoute element={<AccountManagementPage />} />} />
-      <Route path="/admin/audit" element={<ProtectedRoute element={<AuditLogPage />} />} />
-      <Route path="/admin/:id" element={<ProtectedRoute element={<AccountDetailPage />} />} />
+      <Route path="/admin" element={<RoleProtectedRoute element={<AdminPage />} requiredRole="admin" />} />
+      <Route path="/admin/levels" element={<RoleProtectedRoute element={<LevelManagementPage />} requiredRole="admin" />} />
+      <Route path="/admin/config" element={<RoleProtectedRoute element={<SystemConfigPage />} requiredRole="admin" />} />
+      <Route path="/admin/accounts" element={<RoleProtectedRoute element={<AccountManagementPage />} requiredRole={["admin", "manager"]} />} />
+      <Route path="/admin/audit" element={<RoleProtectedRoute element={<AuditLogPage />} requiredRole="admin" />} />
+      <Route path="/admin/:id" element={<RoleProtectedRoute element={<AccountDetailPage />} requiredRole="admin" />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/s/:shortLink" element={<Navigator />} />
