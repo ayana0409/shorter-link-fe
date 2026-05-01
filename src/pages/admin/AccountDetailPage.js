@@ -111,7 +111,7 @@ const AccountDetailPage = () => {
         remove(`account/${id}`)
             .then(() => {
                 toast.success('Xóa tài khoản thành công');
-                navigate('/admin');
+                navigate('/admin/accounts');
             })
             .catch((error) => {
                 const message = error.response?.data?.message || 'Không thể xóa tài khoản';
