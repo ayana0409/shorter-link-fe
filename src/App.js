@@ -58,7 +58,7 @@ function App() {
               <p className='text-lg font-medium text-slate-600'>
                 {retryCount > 0
                   ? `Đang kết nối lại... (Lần thử ${retryCount}/3)`
-                  : 'Đang kết nối máy chủ...'}
+                  : 'Đang đánh thức máy chủ...'}
               </p>
             </>
           )}
