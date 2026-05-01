@@ -8,7 +8,7 @@ import PageWrapper from '../../components/PageWrapper';
 const LevelManagementPage = () => {
     const [levels, setLevels] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [sortBy, setSortBy] = useState('name');
+    const [sortBy, setSortBy] = useState('price');
     const [sortOrder, setSortOrder] = useState('asc');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
@@ -272,7 +272,7 @@ const LevelManagementPage = () => {
                                 <th className="px-4 py-3 text-left">Giá</th>
                                 <th className="px-4 py-3 text-left">Giới hạn/Ngày</th>
                                 <th className="px-4 py-3 text-left">Mật khẩu</th>
-                                <th className="px-4 py-3 text-left">Tùy chỉnh Hết hạn</th>
+                                <th className="px-4 py-3 text-left">Thời gian</th>
                                 <th className="px-4 py-3 text-left">Trạng thái</th>
                                 <th className="px-4 py-3 text-left">Hành động</th>
                             </tr>

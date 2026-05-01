@@ -318,9 +318,9 @@ const AccountManagementPage = () => {
                                                     setSelectedLevelId(account.level?._id || '');
                                                     setLevelExpirationDate(account.levelExpirationDate ? new Date(account.levelExpirationDate).toISOString().slice(0, 16) : '');
                                                 }}
-                                                className="inline-flex rounded-full bg-green-500 px-3 py-1 text-sm text-white transition hover:bg-green-600"
+                                                className="inline-flex rounded-full bg-orange-500 px-3 py-1 text-sm text-white transition hover:bg-orange-600"
                                             >
-                                                Update Level
+                                                Nạp VIP
                                             </button>
                                             <Link
                                                 to={`/admin/${account._id || account.id}`}

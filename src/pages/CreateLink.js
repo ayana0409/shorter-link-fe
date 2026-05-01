@@ -16,6 +16,16 @@ const getClientUrl = () => {
 };
 const clientUrl = getClientUrl();
 
+const isValidUrl = (string) => {
+  try {
+    new URL(string);
+    return true;
+  } catch (_) { }
+
+  const domainRegex = /^([a-zA-Z0-9]([a-zA-Z0-9]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(:\d+)?(\/.*)?$/;
+  return domainRegex.test(string);
+};
+
 const LineChart = ({ data }) => {
   if (!data || data.length === 0) {
     return <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-500">Chưa có dữ liệu biểu đồ</div>;
@@ -32,7 +42,6 @@ const LineChart = ({ data }) => {
     const y = height - padding - ((item.value - minValue) * (height - padding * 2)) / Math.max(maxValue - minValue, 1);
     return `${x},${y}`;
   });
-
   return (
     <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-slate-50 p-4 shadow-sm shadow-slate-300/10">
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
@@ -194,6 +203,12 @@ const CreateLink = () => {
 
     if (!originalLink) {
       toast.error("Vui lòng nhập liên kết gốc");
+      return;
+    }
+
+    const validatedUrl = isValidUrl(originalLink);
+    if (!validatedUrl) {
+      toast.error("Liên kết gốc không hợp lệ. Vui lòng kiểm tra lại");
       return;
     }
 
@@ -363,6 +378,10 @@ const CreateLink = () => {
             <p className="mt-2 text-sm text-slate-600">Nhập liên kết gốc của bạn để tạo liên kết rút gọn.</p>
           </div>
           <div className="space-y-4">
+
+            <p className="text-xs text-slate-500 mb-2">💡 Lưu ý:</p>
+            <p className="text-xs text-slate-500 mb-2 ml-8">- Liên kết gốc có thể không chứa protocol (http:// hoặc https://)</p>
+            <p className="text-xs text-slate-500 mb-2 ml-8">- VD: Có thể nhập shink.onrender.com thay vì https://shink.onrender.com</p>
             <div>
               <input
                 type="text"
@@ -388,7 +407,7 @@ const CreateLink = () => {
                 {createPassword && (
                   <>
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">Mật khẩu</label>
+                      <label className="mb-2 block text-sm font-medium text-slate-700">Mật khẩu*</label>
                       <input
                         type="password"
                         value={password}
@@ -398,7 +417,7 @@ const CreateLink = () => {
                       />
                     </div>
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">Xác nhận mật khẩu</label>
+                      <label className="mb-2 block text-sm font-medium text-slate-700">Xác nhận mật khẩu*</label>
                       <input
                         type="password"
                         value={confirmPassword}
@@ -412,7 +431,7 @@ const CreateLink = () => {
               </>
             )}
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Tên trang web (tùy chọn)</label>
+              <label className="mb-2 block text-sm font-medium text-slate-700">Tên trang web</label>
               <input
                 type="text"
                 value={siteName}
@@ -437,10 +456,13 @@ const CreateLink = () => {
                 </div>
                 {!noExpiration && (
                   <>
-                    <p className="text-xs text-slate-500 mb-2">💡 Lưu ý: Múi giờ +7 (Giờ Hà Nội)</p>
+                    <p className="text-xs text-slate-500 mb-2">💡 Lưu ý:</p>
+                    <p className="text-xs text-slate-500 mb-2 ml-8">- Nếu KHÔNG chọn thời gian mở, liên kết sẽ được mở TẠI THỜI ĐIỂM TẠO</p>
+                    <p className="text-xs text-slate-500 mb-2 ml-8">- Nếu KHÔNG chọn thời gian đóng, liên kết sẽ hết hạn theo THỜI GIAN MẶC ĐỊNH</p>
+                    <p className="text-xs text-slate-500 mb-2 ml-8">- Múi giờ +7 (Giờ Hà Nội)</p>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">Thời gian bắt đầu (tùy chọn)</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">Thời gian mở</label>
                         <input
                           type="datetime-local"
                           value={validityFromDate}
@@ -449,7 +471,7 @@ const CreateLink = () => {
                         />
                       </div>
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">Thời gian kết thúc (tùy chọn) {!quotaInfo?.level?.allowCustomExpiration && "(Yêu cầu nâng cấp level)"}</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">Thời gian đóng</label>
                         <input
                           type="datetime-local"
                           value={validityToDate}
