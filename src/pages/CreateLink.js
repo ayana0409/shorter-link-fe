@@ -343,7 +343,7 @@ const CreateLink = () => {
       }
     }
   };
-
+  console.log(quotaInfo);
   return (
     <PageWrapper
       title="Shorter Link"
@@ -364,7 +364,7 @@ const CreateLink = () => {
               ) : (
                 <>
                   <p className="text-sm text-slate-500">Lượt tạo link còn lại hôm nay</p>
-                  <p className="text-xl font-semibold text-slate-900">{quotaInfo.remaining} / {quotaInfo.limit}</p>
+                  <p className="text-xl font-semibold text-slate-900">{quotaInfo.remaining} / {quotaInfo.level?.dailyShortenLimit ? quotaInfo.level.dailyShortenLimit : quotaInfo.limit}</p>
                 </>
               )}
             </div>
