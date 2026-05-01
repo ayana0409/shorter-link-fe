@@ -343,7 +343,7 @@ const CreateLink = () => {
       }
     }
   };
-  console.log(quotaInfo);
+
   return (
     <PageWrapper
       title="Shorter Link"
