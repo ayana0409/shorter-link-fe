@@ -30,7 +30,6 @@ const Register = () => {
 
         request.post('/account/register', formData)
             .then((response) => {
-                console.log(response);
                 toast.success('Account created successfully');
                 setTimeout(() => {
                     window.location.href = '/login';
