@@ -46,9 +46,10 @@ const Login = () => {
     }
 
     const handleChange = (e) => {
+        const { name, value } = e.target;
         setUser({
             ...user,
-            [e.target.name]: e.target.value
+            [name]: name === 'username' ? value.toLowerCase() : value
         });
     }
 

@@ -14,9 +14,10 @@ const Register = () => {
     const [verifyPassword, setVerifyPassword] = useState('');
 
     const handleChange = (e) => {
+        const { name, value } = e.target;
         setFormData({
             ...formData,
-            [e.target.name]: e.target.value,
+            [name]: name === 'username' ? value.toLowerCase() : value,
         });
     };
 
