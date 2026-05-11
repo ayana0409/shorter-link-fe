@@ -1,20 +1,10 @@
 import { Fragment, useEffect, useState } from "react";
 import { get, post, patch } from "../utils/request";
+import { clientUrl } from "../utils/url";
 import toast from 'react-hot-toast';
 import { getTokenWithExpiry } from "../constants/localStorage";
 import PageWrapper from "../components/PageWrapper";
 import QrCodePreview from "../components/QrCodePreview";
-
-const getClientUrl = () => {
-  const rawUrl = process.env.REACT_APP_CLIENT_URL || window.location.origin;
-  try {
-    const parsed = new URL(rawUrl);
-    return `${parsed.protocol}//${parsed.host}`;
-  } catch {
-    return rawUrl.replace(/\/+$/, "");
-  }
-};
-const clientUrl = getClientUrl();
 
 const isValidUrl = (string) => {
   try {

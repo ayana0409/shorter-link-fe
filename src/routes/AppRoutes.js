@@ -4,6 +4,9 @@ import Navigator from "../pages/Navigator";
 import NotFountOrExpire from "../pages/NotFoundOrExpire";
 import AccountLocked from "../pages/AccountLocked";
 import CreateLink from "../pages/CreateLink";
+import GroupsPage from "../pages/GroupsPage";
+import GroupMembersPage from "../pages/GroupMembersPage";
+import GroupLinksPage from "../pages/GroupLinksPage";
 import { RegisterPage } from "../pages/accounts";
 import { LoginPage } from "../pages/auth";
 import { AdminPage, AccountManagementPage, AccountDetailPage, AuditLogPage, SystemConfigPage, LevelManagementPage } from "../pages/admin";
@@ -21,6 +24,9 @@ const AppRoutes = () => {
       <Route path="/not-found" element={<NotFountOrExpire />} />
       <Route path="/locked" element={<AccountLocked />} />
       <Route path="/home" element={<ProtectedRoute element={<CreateLink />} />} />
+      <Route path="/groups" element={<ProtectedRoute element={<GroupsPage />} />} />
+      <Route path="/groups/:groupId/members" element={<ProtectedRoute element={<GroupMembersPage />} />} />
+      <Route path="/groups/:groupId/links" element={<ProtectedRoute element={<GroupLinksPage />} />} />
       <Route path="/admin" element={<RoleProtectedRoute element={<AdminPage />} requiredRole="admin" />} />
       <Route path="/admin/levels" element={<RoleProtectedRoute element={<LevelManagementPage />} requiredRole="admin" />} />
       <Route path="/admin/config" element={<RoleProtectedRoute element={<SystemConfigPage />} requiredRole="admin" />} />

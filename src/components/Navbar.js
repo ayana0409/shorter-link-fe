@@ -3,7 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getTokenRole, getTokenWithExpiry, removeToken } from '../constants/localStorage';
 
 const navItems = [
-    { label: 'Home', to: '/home', roles: ['user', 'admin', 'manager', null] },
+    { label: 'Home', to: '/home', roles: ['user', 'admin', 'manager'] },
+    { label: 'Nhóm', to: '/groups', roles: ['user', 'admin', 'manager'] },
     { label: 'Biểu đồ admin', to: '/admin', roles: ['admin'] },
     {
         label: 'Quản lý',
