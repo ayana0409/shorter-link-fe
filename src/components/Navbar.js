@@ -18,6 +18,7 @@ const navItems = [
         label: 'Hệ thống',
         roles: ['admin'],
         children: [
+            { label: 'Trạng thái hệ thống', to: '/admin/health', roles: ['admin'] },
             { label: 'Nhật ký hoạt động', to: '/admin/audit', roles: ['admin'] },
             { label: 'Cấu hình hệ thống', to: '/admin/config', roles: ['admin'] },
         ]
