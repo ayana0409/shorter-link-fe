@@ -1,10 +1,10 @@
 import React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { get, post, remove } from "../utils/request";
-import PageWrapper from "../components/PageWrapper";
+import { get, post, remove } from "../../utils/request";
+import PageWrapper from "../../components/PageWrapper";
 import toast from "react-hot-toast";
-import { getTokenPayload } from "../constants/localStorage";
+import { getTokenPayload } from "../../constants/localStorage";
 
 const MembersList = React.memo(({ members, memberRoleInputs, setMemberRoleInputs, isOwner, groupRole, userId, ownerId, actionLoading, handleUpdateMemberRole, handleRemoveMember }) => {
     return (

@@ -1,9 +1,9 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { get, post, put, remove } from "../utils/request";
-import PageWrapper from "../components/PageWrapper";
+import { get, post, put, remove } from "../../utils/request";
+import PageWrapper from "../../components/PageWrapper";
 import toast from "react-hot-toast";
-import { getTokenPayload } from "../constants/localStorage";
+import { getTokenPayload } from "../../constants/localStorage";
 
 const GroupsPage = () => {
     const [groups, setGroups] = useState([]);

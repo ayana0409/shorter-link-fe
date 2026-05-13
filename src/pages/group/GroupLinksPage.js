@@ -1,11 +1,11 @@
 ﻿import React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { get, post, remove, patch } from "../utils/request";
-import PageWrapper from "../components/PageWrapper";
+import { get, post, remove, patch } from "../../utils/request";
+import PageWrapper from "../../components/PageWrapper";
 import toast from "react-hot-toast";
-import { getTokenPayload } from "../constants/localStorage";
-import { clientUrl } from "../utils/url";
+import { getTokenPayload } from "../../constants/localStorage";
+import { clientUrl } from "../../utils/url";
 
 const LinksList = React.memo(({ links, canManageLinks, userId, actionLoading, handleRemoveLink, toggleLinkStatus, setEditingPasswordLinkId, handleUpdatePassword, editingPasswordLinkId, newLinkPassword, setNewLinkPassword, confirmNewLinkPassword, setConfirmNewLinkPassword, copyToClipboard, getLinkStatus, clientUrl }) => {
     return (
@@ -228,7 +228,7 @@ const GroupLinksPage = () => {
             setLinkUrl("");
             toast.success("Thêm link vào nhóm thành công.");
         } catch (error) {
-            toast.error("Thêm link thất bại.");
+            toast.error(error.response.data.error.message || "Thêm link thất bại.");
         } finally {
             setActionLoading(false);
         }
@@ -243,7 +243,7 @@ const GroupLinksPage = () => {
             await refreshLinks();
             toast.success("Xóa link khỏi nhóm thành công.");
         } catch (error) {
-            toast.error("Xóa link thất bại.");
+            toast.error(error.response.data.error.message || "Xóa link thất bại.");
         } finally {
             setActionLoading(false);
         }
@@ -256,7 +256,7 @@ const GroupLinksPage = () => {
             await refreshLinks();
             toast.success(`Link đã được ${newStatus === "active" ? "kích hoạt" : "vô hiệu hóa"}.`);
         } catch (error) {
-            toast.error("Không thể thay đổi trạng thái link.");
+            toast.error(error.response.data.error.message || "Không thể thay đổi trạng thái link.");
         }
     };
 
@@ -276,7 +276,7 @@ const GroupLinksPage = () => {
             await refreshLinks();
             toast.success("Cập nhật mật khẩu thành công.");
         } catch (error) {
-            toast.error("Cập nhật mật khẩu thất bại.");
+            toast.error(error.response.data.error.message || "Cập nhật mật khẩu thất bại.");
         }
     };
 
@@ -299,7 +299,7 @@ const GroupLinksPage = () => {
             await navigator.clipboard.writeText(getShortLinkUrl(link));
             toast.success("Đã sao chép link rút gọn vào clipboard.");
         } catch (error) {
-            toast.error("Không thể sao chép link.");
+            toast.error(error.response.data.error.message || "Không thể sao chép link.");
         }
     };
 
