@@ -83,6 +83,7 @@ const GroupMembersPage = () => {
     const [sortBy, setSortBy] = useState("username");
     const [sortOrder, setSortOrder] = useState("asc");
     const [currentPage, setCurrentPage] = useState(1);
+    const [maxMembersPerGroup, setMaxMembersPerGroup] = useState(null);
     const [totalPages, setTotalPages] = useState(1);
 
     const userId = useMemo(() => getTokenPayload()?._id, []);
@@ -139,6 +140,9 @@ const GroupMembersPage = () => {
     useEffect(() => {
         fetchGroup();
         refreshMembers();
+        get('account/limits')
+            .then((data) => setMaxMembersPerGroup(data.maxMembersPerGroup))
+            .catch(() => null);
     }, [groupId]);
 
     const handleAddGroupMember = async () => {
@@ -158,7 +162,8 @@ const GroupMembersPage = () => {
             setMemberUserId("");
             toast.success("Thêm thành viên thành công.");
         } catch (error) {
-            toast.error("Thêm thành viên thất bại.");
+            console.error(error);
+            toast.error(error.response?.data?.error?.message || "Thêm thành viên thất bại.");
         } finally {
             setActionLoading(false);
         }
@@ -176,7 +181,7 @@ const GroupMembersPage = () => {
             await refreshMembers();
             toast.success("Cập nhật vai trò thành viên thành công.");
         } catch (error) {
-            toast.error("Cập nhật vai trò thất bại.");
+            toast.error(error.response?.data?.message || "Cập nhật vai trò thất bại.");
         } finally {
             setActionLoading(false);
         }
@@ -277,6 +282,9 @@ const GroupMembersPage = () => {
                                 <div>
                                     <h2 className="text-lg font-semibold text-slate-900">{group.name}</h2>
                                     <p className="mt-1 text-sm text-slate-600">{group.members?.length ?? 0} thành viên · {group.links?.length ?? 0} link</p>
+                                    {maxMembersPerGroup !== null && (
+                                        <p className="mt-1 text-xs text-blue-600">Giới hạn: {group.members?.length ?? 0}/{maxMembersPerGroup} thành viên</p>
+                                    )}
                                 </div>
                                 <div className="rounded-3xl bg-slate-50 px-4 py-3 text-sm text-slate-700">{group.owner?.username || group.owner} là chủ nhóm</div>
                             </div>

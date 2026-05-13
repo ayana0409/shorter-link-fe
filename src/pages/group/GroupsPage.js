@@ -17,6 +17,7 @@ const GroupsPage = () => {
     const [deleteGroupName, setDeleteGroupName] = useState("");
     const [deletePassword, setDeletePassword] = useState("");
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [limits, setLimits] = useState({ maxGroupsCount: null });
     const navigate = useNavigate();
     const userId = useMemo(() => getTokenPayload()?._id, []);
 
@@ -34,6 +35,9 @@ const GroupsPage = () => {
 
     useEffect(() => {
         fetchGroups();
+        get('account/limits')
+            .then((data) => setLimits(data))
+            .catch(() => null);
     }, []);
 
     const handleCreateGroup = async () => {
@@ -49,7 +53,8 @@ const GroupsPage = () => {
             setGroupName("");
             toast.success("Tạo nhóm thành công.");
         } catch (error) {
-            toast.error("Tạo nhóm thất bại. Vui lòng thử lại.");
+            const message = error.response?.data?.message || "Tạo nhóm thất bại. Vui lòng thử lại.";
+            toast.error(message);
         } finally {
             setActionLoading(false);
         }
@@ -137,20 +142,35 @@ const GroupsPage = () => {
                             value={groupName}
                             onChange={(event) => setGroupName(event.target.value)}
                             placeholder="Tên nhóm mới"
-                            className="w-full bg-transparent text-sm text-slate-900 outline-none"
+                            disabled={limits.maxGroupsCount !== null && groups.length >= limits.maxGroupsCount}
+                            className="w-full bg-transparent text-sm text-slate-900 outline-none disabled:cursor-not-allowed disabled:opacity-60"
                         />
                     </div>
                     <button
                         type="button"
                         onClick={handleCreateGroup}
-                        disabled={actionLoading}
+                        disabled={actionLoading || (limits.maxGroupsCount !== null && groups.length >= limits.maxGroupsCount)}
                         className="inline-flex items-center justify-center rounded-3xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        Tạo nhóm
+                        {limits.maxGroupsCount !== null && groups.length >= limits.maxGroupsCount ? 'Đã đạt giới hạn' : 'Tạo nhóm'}
                     </button>
                 </div>
             }
         >
+            {limits.maxGroupsCount !== null && (
+                <div className={`rounded-3xl border p-4 mb-4 ${groups.length >= limits.maxGroupsCount ? 'border-amber-300 bg-amber-50' : 'border-blue-200 bg-blue-50'}`}>
+                    <div className="flex flex-wrap items-center gap-4 text-sm">
+                        <span className="font-semibold">Giới hạn của bạn:</span>
+                        <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${groups.length >= limits.maxGroupsCount ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                            📁 {groups.length}/{limits.maxGroupsCount} nhóm
+                        </span>
+                        {groups.length >= limits.maxGroupsCount && (
+                            <span className="text-amber-700 font-medium">⚠️ Bạn đã đạt giới hạn nhóm tối đa.</span>
+                        )}
+                    </div>
+                </div>
+            )}
+
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
                 <div className="mb-4 flex items-center justify-between gap-3">
                     <div>

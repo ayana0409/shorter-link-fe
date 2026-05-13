@@ -171,6 +171,7 @@ const GroupLinksPage = () => {
     const [editingPasswordLinkId, setEditingPasswordLinkId] = useState("");
     const [newLinkPassword, setNewLinkPassword] = useState("");
     const [confirmNewLinkPassword, setConfirmNewLinkPassword] = useState("");
+    const [maxLinksPerGroup, setMaxLinksPerGroup] = useState(null);
 
     const userId = useMemo(() => getTokenPayload()?._id, []);
     const pageSize = 5;
@@ -211,6 +212,9 @@ const GroupLinksPage = () => {
     useEffect(() => {
         fetchGroup();
         refreshLinks();
+        get('account/limits')
+            .then((data) => setMaxLinksPerGroup(data.maxLinksPerGroup))
+            .catch(() => null);
     }, [groupId]);
 
     const handleAddLink = async () => {
@@ -358,6 +362,9 @@ const GroupLinksPage = () => {
                                 <div>
                                     <h2 className="text-lg font-semibold text-slate-900">{group.name}</h2>
                                     <p className="mt-1 text-sm text-slate-600">{group.members?.length ?? 0} thành viên · {group.links?.length ?? 0} link</p>
+                                    {maxLinksPerGroup !== null && (
+                                        <p className="mt-1 text-xs text-blue-600">Giới hạn: {group.links?.length ?? 0}/{maxLinksPerGroup} link/nhóm</p>
+                                    )}
                                 </div>
                                 <div className="rounded-3xl bg-slate-50 px-4 py-3 text-sm text-slate-700">{group.owner?.username || group.owner} là chủ nhóm</div>
                             </div>
@@ -367,7 +374,7 @@ const GroupLinksPage = () => {
                             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
                                     <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">Thêm link</h3>
-                                    <p className="text-sm text-slate-600">Thêm link đã rút gọn hoặc link gốc vào nhóm.</p>
+                                    <p className="text-sm text-slate-600">Thêm link đã rút gọn hoặc link gốc vào nhóm.{maxLinksPerGroup !== null && ` Giới hạn ${maxLinksPerGroup} link/nhóm.`}</p>
                                 </div>
                             </div>
                             <div className="flex flex-col gap-3 sm:flex-row">

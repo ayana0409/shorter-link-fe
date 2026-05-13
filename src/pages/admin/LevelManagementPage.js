@@ -19,6 +19,9 @@ const LevelManagementPage = () => {
         allowPassword: false,
         allowCustomExpiration: false,
         active: true,
+        maxGroupsCount: '',
+        maxMembersPerGroup: '',
+        maxLinksPerGroup: '',
     });
     const [editingLevel, setEditingLevel] = useState(null);
     const [isCreating, setIsCreating] = useState(false);
@@ -74,6 +77,9 @@ const LevelManagementPage = () => {
             ...newLevel,
             price: Number(newLevel.price),
             dailyShortenLimit: Number(newLevel.dailyShortenLimit),
+            maxGroupsCount: newLevel.maxGroupsCount !== '' ? Number(newLevel.maxGroupsCount) : undefined,
+            maxMembersPerGroup: newLevel.maxMembersPerGroup !== '' ? Number(newLevel.maxMembersPerGroup) : undefined,
+            maxLinksPerGroup: newLevel.maxLinksPerGroup !== '' ? Number(newLevel.maxLinksPerGroup) : undefined,
         })
             .then(() => {
                 toast.success('Tạo level thành công');
@@ -84,6 +90,9 @@ const LevelManagementPage = () => {
                     allowPassword: false,
                     allowCustomExpiration: false,
                     active: true,
+                    maxGroupsCount: '',
+                    maxMembersPerGroup: '',
+                    maxLinksPerGroup: '',
                 });
                 loadLevels(currentPage);
             })
@@ -104,6 +113,9 @@ const LevelManagementPage = () => {
             ...editingLevel,
             price: Number(editingLevel.price),
             dailyShortenLimit: Number(editingLevel.dailyShortenLimit),
+            maxGroupsCount: editingLevel.maxGroupsCount !== '' && editingLevel.maxGroupsCount !== undefined ? Number(editingLevel.maxGroupsCount) : undefined,
+            maxMembersPerGroup: editingLevel.maxMembersPerGroup !== '' && editingLevel.maxMembersPerGroup !== undefined ? Number(editingLevel.maxMembersPerGroup) : undefined,
+            maxLinksPerGroup: editingLevel.maxLinksPerGroup !== '' && editingLevel.maxLinksPerGroup !== undefined ? Number(editingLevel.maxLinksPerGroup) : undefined,
         })
             .then(() => {
                 toast.success('Cập nhật level thành công');
@@ -190,6 +202,27 @@ const LevelManagementPage = () => {
                             placeholder="Giới hạn rút ngắn/ngày"
                             className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
+                        <input
+                            type="number"
+                            value={newLevel.maxGroupsCount}
+                            onChange={(e) => setNewLevel({ ...newLevel, maxGroupsCount: e.target.value })}
+                            placeholder="Số nhóm tối đa (để trống = mặc định)"
+                            className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        />
+                        <input
+                            type="number"
+                            value={newLevel.maxMembersPerGroup}
+                            onChange={(e) => setNewLevel({ ...newLevel, maxMembersPerGroup: e.target.value })}
+                            placeholder="Số TV tối đa/nhóm (để trống = mặc định)"
+                            className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        />
+                        <input
+                            type="number"
+                            value={newLevel.maxLinksPerGroup}
+                            onChange={(e) => setNewLevel({ ...newLevel, maxLinksPerGroup: e.target.value })}
+                            placeholder="Số link tối đa/nhóm (để trống = mặc định)"
+                            className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        />
                     </div>
                     <div className="mt-4 flex flex-wrap gap-6">
                         <label className="flex items-center gap-3 cursor-pointer">
@@ -273,6 +306,9 @@ const LevelManagementPage = () => {
                                 <th className="px-4 py-3 text-left">Giới hạn/Ngày</th>
                                 <th className="px-4 py-3 text-left">Mật khẩu</th>
                                 <th className="px-4 py-3 text-left">Thời gian</th>
+                                <th className="px-4 py-3 text-left">Số nhóm</th>
+                                <th className="px-4 py-3 text-left">TV/Nhóm</th>
+                                <th className="px-4 py-3 text-left">Link/Lần</th>
                                 <th className="px-4 py-3 text-left">Trạng thái</th>
                                 <th className="px-4 py-3 text-left">Hành động</th>
                             </tr>
@@ -311,6 +347,9 @@ const LevelManagementPage = () => {
                                             </label>
                                         </div>
                                     </td>
+                                    <td className="px-4 py-3">{level.maxGroupsCount ?? '-'}</td>
+                                    <td className="px-4 py-3">{level.maxMembersPerGroup ?? '-'}</td>
+                                    <td className="px-4 py-3">{level.maxLinksPerGroup ?? '-'}</td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-3">
                                             <span className={level.active ? 'inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700' : 'inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700'}>
@@ -401,6 +440,36 @@ const LevelManagementPage = () => {
                                     type="number"
                                     value={editingLevel.dailyShortenLimit}
                                     onChange={(e) => setEditingLevel({ ...editingLevel, dailyShortenLimit: e.target.value })}
+                                    className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700">Số nhóm tối đa</label>
+                                <input
+                                    type="number"
+                                    value={editingLevel.maxGroupsCount ?? ''}
+                                    onChange={(e) => setEditingLevel({ ...editingLevel, maxGroupsCount: e.target.value })}
+                                    placeholder="Để trống = dùng mặc định"
+                                    className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700">Số thành viên tối đa/nhóm</label>
+                                <input
+                                    type="number"
+                                    value={editingLevel.maxMembersPerGroup ?? ''}
+                                    onChange={(e) => setEditingLevel({ ...editingLevel, maxMembersPerGroup: e.target.value })}
+                                    placeholder="Để trống = dùng mặc định"
+                                    className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700">Số link tối đa/nhóm</label>
+                                <input
+                                    type="number"
+                                    value={editingLevel.maxLinksPerGroup ?? ''}
+                                    onChange={(e) => setEditingLevel({ ...editingLevel, maxLinksPerGroup: e.target.value })}
+                                    placeholder="Để trống = dùng mặc định"
                                     className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 />
                             </div>
