@@ -34,10 +34,10 @@ const formatUptime = (seconds) => {
     const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
     const parts = [];
-    if (d > 0) parts.push(`${d} ngày`);
-    if (h > 0) parts.push(`${h} giờ`);
-    if (m > 0) parts.push(`${m} phút`);
-    parts.push(`${s} giây`);
+    if (d > 0) parts.push(`${d} ngay`);
+    if (h > 0) parts.push(`${h} gio`);
+    if (m > 0) parts.push(`${m} phut`);
+    parts.push(`${s} giay`);
     return parts.join(' ');
 };
 
@@ -45,6 +45,7 @@ const SystemHealthPage = () => {
     const [health, setHealth] = useState(null);
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
+    const [rateLimited, setRateLimited] = useState(false);
     const navigate = useNavigate();
 
     const fetchHealth = useCallback(() => {
@@ -53,11 +54,17 @@ const SystemHealthPage = () => {
             .then((response) => {
                 setHealth(response);
                 setLastRefreshed(new Date());
+                setRateLimited(false);
             })
             .catch((error) => {
-                const message = error.response?.data?.message || 'Không thể kết nối đến máy chủ';
-                toast.error(message);
-                setHealth(null);
+                if (error.isRateLimited) {
+                    setRateLimited(true);
+                    toast.error(error.rateLimitMessage);
+                } else {
+                    const message = error.response?.data?.message || 'Khong the ket noi den may chu';
+                    toast.error(message);
+                    setHealth(null);
+                }
             })
             .finally(() => setLoading(false));
     }, []);
@@ -71,21 +78,21 @@ const SystemHealthPage = () => {
         fetchHealth();
     }, [navigate, fetchHealth]);
 
-    // Auto refresh every 30s
     useEffect(() => {
+        if (rateLimited) return;
         const interval = setInterval(fetchHealth, 30000);
         return () => clearInterval(interval);
-    }, [fetchHealth]);
+    }, [fetchHealth, rateLimited]);
 
     return (
         <PageWrapper
-            title="Trạng thái hệ thống"
-            subtitle="Theo dõi sức khỏe và hiệu suất của máy chủ"
+            title="Trang thai he thong"
+            subtitle="Theo doi suc khoe va hieu suat cua may chu"
             actions={
                 <div className="flex items-center gap-3">
                     {lastRefreshed && (
                         <span className="text-xs text-slate-500">
-                            Cập nhật: {lastRefreshed.toLocaleTimeString('vi-VN')}
+                            Cap nhat: {lastRefreshed.toLocaleTimeString('vi-VN')}
                         </span>
                     )}
                     <button
@@ -93,63 +100,70 @@ const SystemHealthPage = () => {
                         disabled={loading}
                         className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                     >
-                        {loading ? 'Đang tải...' : 'Làm mới'}
+                        {loading ? 'Dang tai...' : 'Lam moi'}
                     </button>
                 </div>
             }
         >
+            {rateLimited && (
+                <div className="mb-6 rounded-3xl border border-amber-200 bg-amber-50 p-4 flex items-center gap-3">
+                    <span className="text-2xl">⏳</span>
+                    <div>
+                        <p className="text-sm font-medium text-amber-800">He thon dang ban</p>
+                        <p className="text-xs text-amber-600">Ban da gui qua nhieu yeu cau. Tu dong lam moi se tam dung. Nhan &quot;Lam moi&quot; de thu lai.</p>
+                    </div>
+                </div>
+            )}
+
             {loading && !health ? (
                 <div className="flex items-center justify-center rounded-3xl border border-slate-200 bg-white p-12">
                     <div className="flex flex-col items-center gap-3">
                         <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-500" />
-                        <p className="text-sm text-slate-500">Đang kiểm tra trạng thái...</p>
+                        <p className="text-sm text-slate-500">Dang kiem tra trang thai...</p>
                     </div>
                 </div>
             ) : health ? (
                 <div className="space-y-6">
-                    {/* Overall Status */}
                     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h2 className="text-lg font-semibold text-slate-900">Trạng thái tổng thể</h2>
-                                <p className="mt-1 text-sm text-slate-500">Tất cả dịch vụ đang hoạt động bình thường</p>
+                                <h2 className="text-lg font-semibold text-slate-900">Trang thai tong the</h2>
+                                <p className="mt-1 text-sm text-slate-500">Tat ca dich vu dang hoat dong binh thuong</p>
                             </div>
                             <StatusBadge status={health.status} />
                         </div>
                     </div>
 
-                    {/* Info Grid */}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <InfoCard
-                            label="Cơ sở dữ liệu"
+                            label="Co so du lieu"
                             value={health.database}
-                            subValue={health.database === 'connected' ? 'Kết nối ổn định' : 'Mất kết nối'}
+                            subValue={health.database === 'connected' ? 'Ket noi on dinh' : 'Mat ket noi'}
                         />
                         <InfoCard
-                            label="Thời gian hoạt động"
+                            label="Thoi gian hoat dong"
                             value={formatUptime(health.uptime)}
-                            subValue={`${health.uptime} giây`}
+                            subValue={`${health.uptime} giay`}
                         />
                         <InfoCard
-                            label="Bộ nhớ sử dụng"
+                            label="Bo nho su dung"
                             value={`${health.memory.used} / ${health.memory.total} MB`}
-                            subValue={`${Math.round((health.memory.used / health.memory.total) * 100)}% đã dùng`}
+                            subValue={`${Math.round((health.memory.used / health.memory.total) * 100)}% da dung`}
                         />
                         <InfoCard
                             label="Rate Limit"
                             value={`${health.rateLimit.limit} requests`}
-                            subValue={`Mỗi ${health.rateLimit.ttl / 1000}s`}
+                            subValue={`Moi ${health.rateLimit.ttl / 1000}s`}
                         />
                         <InfoCard
-                            label="Thời điểm kiểm tra"
+                            label="Thoi diem kiem tra"
                             value={new Date(health.timestamp).toLocaleTimeString('vi-VN')}
                             subValue={new Date(health.timestamp).toLocaleDateString('vi-VN')}
                         />
                     </div>
 
-                    {/* Memory Bar */}
                     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h3 className="text-sm font-semibold text-slate-900">Sử dụng bộ nhớ</h3>
+                        <h3 className="text-sm font-semibold text-slate-900">Su dung bo nho</h3>
                         <div className="mt-4">
                             <div className="flex items-center justify-between text-sm text-slate-600">
                                 <span>Heap Used</span>
@@ -178,13 +192,13 @@ const SystemHealthPage = () => {
             ) : (
                 <div className="flex flex-col items-center justify-center rounded-3xl border border-red-200 bg-red-50 p-12">
                     <div className="text-4xl mb-3">⚠️</div>
-                    <p className="text-lg font-medium text-red-700">Không thể kết nối đến máy chủ</p>
-                    <p className="mt-1 text-sm text-red-500">Vui lòng kiểm tra kết nối hoặc thử lại sau</p>
+                    <p className="text-lg font-medium text-red-700">Khong the ket noi den may chu</p>
+                    <p className="mt-1 text-sm text-red-500">Vui long kiem tra ket noi hoac thu lai sau</p>
                     <button
                         onClick={fetchHealth}
                         className="mt-4 rounded-2xl bg-red-600 px-6 py-2 text-sm font-medium text-white transition hover:bg-red-700"
                     >
-                        Thử lại
+                        Thu lai
                     </button>
                 </div>
             )}

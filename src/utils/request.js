@@ -37,6 +37,17 @@ request.interceptors.response.use(
             const message = Array.isArray(rawMessage)
                 ? rawMessage.join(' ')
                 : String(rawMessage || '');
+
+            if (status === 429) {
+                // Rate limited — calculate retry time from Retry-After header (seconds) or default 60s
+                const retryAfter = error.response.headers?.['retry-after'];
+                const waitSeconds = retryAfter ? parseInt(retryAfter, 10) : 60;
+                const waitMinutes = Math.ceil(waitSeconds / 60);
+                error.isRateLimited = true;
+                error.rateLimitMessage = `Hệ thống đang bận, vui lòng thử lại sau ${waitMinutes} phút.`;
+                return Promise.reject(error);
+            }
+
             if (status === 403 && /khóa|locked|bị khóa/i.test(message)) {
                 removeToken();
                 window.location.href = '/locked';
