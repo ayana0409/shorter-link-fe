@@ -212,7 +212,7 @@ const GroupLinksPage = () => {
     useEffect(() => {
         fetchGroup();
         refreshLinks();
-        get('account/limits')
+        get(`groups/${groupId}/limits`)
             .then((data) => setMaxLinksPerGroup(data.maxLinksPerGroup))
             .catch(() => null);
     }, [groupId]);

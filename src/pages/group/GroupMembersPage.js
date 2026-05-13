@@ -140,7 +140,7 @@ const GroupMembersPage = () => {
     useEffect(() => {
         fetchGroup();
         refreshMembers();
-        get('account/limits')
+        get(`groups/${groupId}/limits`)
             .then((data) => setMaxMembersPerGroup(data.maxMembersPerGroup))
             .catch(() => null);
     }, [groupId]);
