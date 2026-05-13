@@ -151,7 +151,7 @@ const CreateLink = () => {
         setTotalPages(response.totalPages || 1);
       })
       .catch((error) => {
-        const message = error.response?.data?.message || 'Không thể tải danh sách liên kết';
+        const message = error.response?.data?.error?.message || 'Không thể tải danh sách liên kết';
         toast.error(message);
       });
   };
@@ -181,7 +181,7 @@ const CreateLink = () => {
         refreshLinks();
       })
       .catch((error) => {
-        const message = error.response?.data?.message || 'Không thể cập nhật trạng thái liên kết';
+        const message = error.response?.data?.error?.message || 'Không thể cập nhật trạng thái liên kết';
         toast.error(message);
       });
   };
@@ -252,7 +252,7 @@ const CreateLink = () => {
         }
       })
       .catch((error) => {
-        const message = error.response?.data?.message || 'Không thể tạo liên kết';
+        const message = error.response?.data?.error?.message || 'Không thể tạo liên kết';
         toast.error(message);
       })
       .finally(() => {
@@ -725,7 +725,7 @@ const CreateLink = () => {
                                               refreshLinks(currentPage);
                                             })
                                             .catch((error) => {
-                                              const message = error.response?.data?.message || 'Không thể cập nhật mật khẩu liên kết';
+                                              const message = error.response?.data?.error?.message || 'Không thể cập nhật mật khẩu liên kết';
                                               toast.error(message);
                                             });
                                         }}
