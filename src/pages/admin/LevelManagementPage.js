@@ -4,6 +4,7 @@ import { get, post, patch } from '../../utils/request';
 import toast from 'react-hot-toast';
 import { getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
 import PageWrapper from '../../components/PageWrapper';
+import { MSG } from '../../constants/messages';
 
 const LevelManagementPage = () => {
     const [levels, setLevels] = useState([]);
@@ -59,7 +60,7 @@ const LevelManagementPage = () => {
                 setTotalPages(totalPagesFromResponse);
             })
             .catch((error) => {
-                const message = error.response?.data?.error?.message || 'Không thể tải danh sách level';
+                const message = error.response?.data?.error?.message || MSG.ADMIN.LEVEL.ERR_LOAD;
                 toast.error(message);
             });
     };
@@ -68,7 +69,7 @@ const LevelManagementPage = () => {
         if (isCreating) return;
 
         if (!newLevel.name.trim() || newLevel.price === '' || newLevel.dailyShortenLimit === '') {
-            toast.error('Vui lòng điền đầy đủ tên, giá và giới hạn rút ngắn hàng ngày');
+            toast.error(MSG.ADMIN.LEVEL.ERR_CREATE_EMPTY);
             return;
         }
 
@@ -82,7 +83,7 @@ const LevelManagementPage = () => {
             maxLinksPerGroup: newLevel.maxLinksPerGroup !== '' ? Number(newLevel.maxLinksPerGroup) : undefined,
         })
             .then(() => {
-                toast.success('Tạo level thành công');
+                toast.success(MSG.ADMIN.LEVEL.SUCCESS_CREATE);
                 setNewLevel({
                     name: '',
                     price: '',
@@ -97,7 +98,7 @@ const LevelManagementPage = () => {
                 loadLevels(currentPage);
             })
             .catch((error) => {
-                const message = error.response?.data?.message || 'Không thể tạo level';
+                const message = error.response?.data?.error?.message || MSG.ADMIN.LEVEL.ERR_CREATE;
                 toast.error(message);
             })
             .finally(() => {
@@ -118,12 +119,12 @@ const LevelManagementPage = () => {
             maxLinksPerGroup: editingLevel.maxLinksPerGroup !== '' && editingLevel.maxLinksPerGroup !== undefined ? Number(editingLevel.maxLinksPerGroup) : undefined,
         })
             .then(() => {
-                toast.success('Cập nhật level thành công');
+                toast.success(MSG.ADMIN.LEVEL.SUCCESS_UPDATE);
                 setEditingLevel(null);
                 loadLevels(currentPage);
             })
             .catch((error) => {
-                const message = error.response?.data?.message || 'Không thể cập nhật level';
+                const message = error.response?.data?.error?.message || MSG.ADMIN.LEVEL.ERR_UPDATE;
                 toast.error(message);
             })
             .finally(() => {
@@ -134,11 +135,11 @@ const LevelManagementPage = () => {
     const toggleLevelField = (levelId, field, currentStatus) => {
         patch(`level/${levelId}`, { [field]: !currentStatus })
             .then(() => {
-                toast.success('Cập nhật thành công');
+                toast.success(MSG.ADMIN.LEVEL.SUCCESS_TOGGLE);
                 loadLevels(currentPage);
             })
             .catch((error) => {
-                const message = error.response?.data?.message || 'Không thể cập nhật';
+                const message = error.response?.data?.error?.message || MSG.ADMIN.LEVEL.ERR_TOGGLE;
                 toast.error(message);
             });
     };
@@ -151,33 +152,34 @@ const LevelManagementPage = () => {
         }
 
         loadLevels(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [navigate]);
 
     return (
         <PageWrapper
-            title="Quản lý Level"
-            subtitle="Thiết lập các gói level cho tài khoản người dùng"
+            title={MSG.ADMIN.LEVEL.PAGE_TITLE}
+            subtitle={MSG.ADMIN.LEVEL.PAGE_SUBTITLE}
         >
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
                 <div className="mb-6">
                     <div>
-                        <h2 className="text-2xl font-semibold text-slate-900">Quản lý Level</h2>
-                        <p className="mt-2 text-sm text-slate-600">Tạo mới và quản lý các gói level trong hệ thống.</p>
+                        <h2 className="text-2xl font-semibold text-slate-900">{MSG.ADMIN.LEVEL.TITLE}</h2>
+                        <p className="mt-2 text-sm text-slate-600">{MSG.ADMIN.LEVEL.DESC}</p>
                     </div>
                 </div>
 
                 <div className="mb-6 rounded-3xl border border-slate-200 bg-slate-50 p-6">
                     <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                         <div>
-                            <h3 className="text-xl font-semibold text-slate-900">Tạo level mới</h3>
-                            <p className="text-sm text-slate-600">Thêm gói level mới cho hệ thống.</p>
+                            <h3 className="text-xl font-semibold text-slate-900">{MSG.ADMIN.LEVEL.TITLE}</h3>
+                            <p className="text-sm text-slate-600">{MSG.ADMIN.LEVEL.DESC}</p>
                         </div>
                         <button
                             onClick={createLevel}
                             disabled={isCreating}
                             className={`rounded-2xl px-4 py-3 text-white shadow-md transition ${isCreating ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}
                         >
-                            {isCreating ? 'Đang tạo...' : 'Tạo level'}
+                            {isCreating ? MSG.ADMIN.LEVEL.BTN_CREATING : MSG.ADMIN.LEVEL.BTN_CREATE}
                         </button>
                     </div>
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -185,42 +187,42 @@ const LevelManagementPage = () => {
                             type="text"
                             value={newLevel.name}
                             onChange={(e) => setNewLevel({ ...newLevel, name: e.target.value })}
-                            placeholder="Tên Level (vd: Gold, Platinum)"
+                            placeholder={MSG.ADMIN.LEVEL.PLACEHOLDER_NAME}
                             className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                         <input
                             type="number"
                             value={newLevel.price}
                             onChange={(e) => setNewLevel({ ...newLevel, price: e.target.value })}
-                            placeholder="Giá ($)"
+                            placeholder={MSG.ADMIN.LEVEL.PLACEHOLDER_PRICE}
                             className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                         <input
                             type="number"
                             value={newLevel.dailyShortenLimit}
                             onChange={(e) => setNewLevel({ ...newLevel, dailyShortenLimit: e.target.value })}
-                            placeholder="Giới hạn rút ngắn/ngày"
+                            placeholder={MSG.ADMIN.LEVEL.PLACEHOLDER_DAILY_LIMIT}
                             className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                         <input
                             type="number"
                             value={newLevel.maxGroupsCount}
                             onChange={(e) => setNewLevel({ ...newLevel, maxGroupsCount: e.target.value })}
-                            placeholder="Số nhóm tối đa (để trống = mặc định)"
+                            placeholder={MSG.ADMIN.LEVEL.PLACEHOLDER_MAX_GROUPS}
                             className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                         <input
                             type="number"
                             value={newLevel.maxMembersPerGroup}
                             onChange={(e) => setNewLevel({ ...newLevel, maxMembersPerGroup: e.target.value })}
-                            placeholder="Số TV tối đa/nhóm (để trống = mặc định)"
+                            placeholder={MSG.ADMIN.LEVEL.PLACEHOLDER_MAX_MEMBERS}
                             className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                         <input
                             type="number"
                             value={newLevel.maxLinksPerGroup}
                             onChange={(e) => setNewLevel({ ...newLevel, maxLinksPerGroup: e.target.value })}
-                            placeholder="Số link tối đa/nhóm (để trống = mặc định)"
+                            placeholder={MSG.ADMIN.LEVEL.PLACEHOLDER_MAX_LINKS}
                             className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                     </div>
@@ -232,7 +234,7 @@ const LevelManagementPage = () => {
                                 onChange={(e) => setNewLevel({ ...newLevel, allowPassword: e.target.checked })}
                                 className="h-5 w-5 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
                             />
-                            <span className="text-sm text-slate-700">Cho phép đặt mật khẩu</span>
+                            <span className="text-sm text-slate-700">{MSG.ADMIN.LEVEL.LABEL_ALLOW_PASSWORD}</span>
                         </label>
                         <label className="flex items-center gap-3 cursor-pointer">
                             <input
@@ -241,7 +243,7 @@ const LevelManagementPage = () => {
                                 onChange={(e) => setNewLevel({ ...newLevel, allowCustomExpiration: e.target.checked })}
                                 className="h-5 w-5 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
                             />
-                            <span className="text-sm text-slate-700">Cho phép tùy chỉnh ngày hết hạn</span>
+                            <span className="text-sm text-slate-700">{MSG.ADMIN.LEVEL.LABEL_ALLOW_EXPIRATION}</span>
                         </label>
                     </div>
                 </div>
@@ -257,7 +259,7 @@ const LevelManagementPage = () => {
                                 setCurrentPage(1);
                                 loadLevels(1, nextSearch, sortBy, sortOrder);
                             }}
-                            placeholder="Tìm kiếm tên level..."
+                            placeholder={MSG.ADMIN.LEVEL.SEARCH_PLACEHOLDER}
                             className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                     </div>
@@ -272,9 +274,9 @@ const LevelManagementPage = () => {
                             }}
                             className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         >
-                            <option value="name">Tên Level</option>
-                            <option value="price">Giá</option>
-                            <option value="dailyShortenLimit">Giới hạn/Ngày</option>
+                            <option value="name">{MSG.ADMIN.LEVEL.SORT_NAME}</option>
+                            <option value="price">{MSG.ADMIN.LEVEL.SORT_PRICE}</option>
+                            <option value="dailyShortenLimit">{MSG.ADMIN.LEVEL.SORT_DAILY_LIMIT}</option>
                         </select>
                         <select
                             value={sortOrder}
@@ -286,14 +288,14 @@ const LevelManagementPage = () => {
                             }}
                             className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         >
-                            <option value="asc">Tăng dần</option>
-                            <option value="desc">Giảm dần</option>
+                            <option value="asc">{MSG.ADMIN.LEVEL.SORT_ASC}</option>
+                            <option value="desc">{MSG.ADMIN.LEVEL.SORT_DESC}</option>
                         </select>
                         <button
                             onClick={() => loadLevels(currentPage)}
                             className="rounded-2xl bg-blue-500 px-4 py-3 text-white shadow-md shadow-blue-500/10 transition hover:bg-blue-600"
                         >
-                            Làm mới
+                            {MSG.ADMIN.LEVEL.BTN_REFRESH}
                         </button>
                     </div>
                 </div>
@@ -301,16 +303,16 @@ const LevelManagementPage = () => {
                     <table className="min-w-full divide-y divide-slate-200 text-sm text-slate-700">
                         <thead className="bg-slate-100 text-slate-900">
                             <tr>
-                                <th className="px-4 py-3 text-left">Tên Level</th>
-                                <th className="px-4 py-3 text-left">Giá</th>
-                                <th className="px-4 py-3 text-left">Giới hạn/Ngày</th>
-                                <th className="px-4 py-3 text-left">Mật khẩu</th>
-                                <th className="px-4 py-3 text-left">Thời gian</th>
-                                <th className="px-4 py-3 text-left">Số nhóm</th>
-                                <th className="px-4 py-3 text-left">TV/Nhóm</th>
-                                <th className="px-4 py-3 text-left">Link/Lần</th>
-                                <th className="px-4 py-3 text-left">Trạng thái</th>
-                                <th className="px-4 py-3 text-left">Hành động</th>
+                                <th className="px-4 py-3 text-left">{MSG.ADMIN.LEVEL.COL_NAME}</th>
+                                <th className="px-4 py-3 text-left">{MSG.ADMIN.LEVEL.COL_PRICE}</th>
+                                <th className="px-4 py-3 text-left">{MSG.ADMIN.LEVEL.COL_DAILY_LIMIT}</th>
+                                <th className="px-4 py-3 text-left">{MSG.ADMIN.LEVEL.COL_PASSWORD}</th>
+                                <th className="px-4 py-3 text-left">{MSG.ADMIN.LEVEL.COL_TIME}</th>
+                                <th className="px-4 py-3 text-left">{MSG.ADMIN.LEVEL.COL_GROUPS}</th>
+                                <th className="px-4 py-3 text-left">{MSG.ADMIN.LEVEL.COL_MEMBERS}</th>
+                                <th className="px-4 py-3 text-left">{MSG.ADMIN.LEVEL.COL_LINKS}</th>
+                                <th className="px-4 py-3 text-left">{MSG.ADMIN.LEVEL.COL_STATUS}</th>
+                                <th className="px-4 py-3 text-left">{MSG.ADMIN.LEVEL.COL_ACTION}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 bg-white">
@@ -353,7 +355,7 @@ const LevelManagementPage = () => {
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-3">
                                             <span className={level.active ? 'inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700' : 'inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700'}>
-                                                {level.active ? 'Hoạt động' : 'Ngừng'}
+                                                {level.active ? MSG.ADMIN.LEVEL.STATUS_ACTIVE : MSG.ADMIN.LEVEL.STATUS_INACTIVE}
                                             </span>
                                             <label className="relative inline-flex cursor-pointer items-center">
                                                 <input
@@ -373,7 +375,7 @@ const LevelManagementPage = () => {
                                                 onClick={() => setEditingLevel({ ...level })}
                                                 className="inline-flex rounded-full bg-blue-500 px-3 py-1 text-sm text-white transition hover:bg-blue-600"
                                             >
-                                                Sửa
+                                                {MSG.ADMIN.LEVEL.BTN_EDIT}
                                             </button>
                                         </div>
                                     </td>
@@ -393,9 +395,9 @@ const LevelManagementPage = () => {
                         disabled={currentPage === 1}
                         className="rounded-2xl bg-slate-200 px-4 py-3 text-slate-700 disabled:opacity-50"
                     >
-                        Trước
+                        {MSG.ADMIN.LEVEL.BTN_PREV}
                     </button>
-                    <div className="text-sm text-slate-700">Trang {currentPage} / {totalPages}</div>
+                    <div className="text-sm text-slate-700">{MSG.ADMIN.LEVEL.PAGE_INFO(currentPage, totalPages)}</div>
                     <button
                         onClick={() => {
                             const nextPage = Math.min(currentPage + 1, totalPages);
@@ -405,7 +407,7 @@ const LevelManagementPage = () => {
                         disabled={currentPage === totalPages}
                         className="rounded-2xl bg-slate-200 px-4 py-3 text-slate-700 disabled:opacity-50"
                     >
-                        Sau
+                        {MSG.ADMIN.LEVEL.BTN_NEXT}
                     </button>
                 </div>
             </div>
@@ -414,10 +416,10 @@ const LevelManagementPage = () => {
             {editingLevel && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
                     <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-xl">
-                        <h3 className="mb-4 text-lg font-semibold">Chỉnh sửa Level: {editingLevel.name}</h3>
+                        <h3 className="mb-4 text-lg font-semibold">{MSG.ADMIN.LEVEL.EDIT_TITLE(editingLevel.name)}</h3>
                         <div className="grid gap-4 md:grid-cols-2">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700">Tên Level</label>
+                                <label className="block text-sm font-medium text-slate-700">{MSG.ADMIN.LEVEL.EDIT_LABEL_NAME}</label>
                                 <input
                                     type="text"
                                     value={editingLevel.name}
@@ -426,7 +428,7 @@ const LevelManagementPage = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700">Giá ($)</label>
+                                <label className="block text-sm font-medium text-slate-700">{MSG.ADMIN.LEVEL.EDIT_LABEL_PRICE}</label>
                                 <input
                                     type="number"
                                     value={editingLevel.price}
@@ -435,7 +437,7 @@ const LevelManagementPage = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700">Giới hạn rút ngắn/ngày</label>
+                                <label className="block text-sm font-medium text-slate-700">{MSG.ADMIN.LEVEL.EDIT_LABEL_DAILY_LIMIT}</label>
                                 <input
                                     type="number"
                                     value={editingLevel.dailyShortenLimit}
@@ -444,32 +446,32 @@ const LevelManagementPage = () => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700">Số nhóm tối đa</label>
+                                <label className="block text-sm font-medium text-slate-700">{MSG.ADMIN.LEVEL.EDIT_LABEL_MAX_GROUPS}</label>
                                 <input
                                     type="number"
                                     value={editingLevel.maxGroupsCount ?? ''}
                                     onChange={(e) => setEditingLevel({ ...editingLevel, maxGroupsCount: e.target.value })}
-                                    placeholder="Để trống = dùng mặc định"
+                                    placeholder={MSG.ADMIN.LEVEL.EDIT_PLACEHOLDER_DEFAULT}
                                     className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700">Số thành viên tối đa/nhóm</label>
+                                <label className="block text-sm font-medium text-slate-700">{MSG.ADMIN.LEVEL.EDIT_LABEL_MAX_MEMBERS}</label>
                                 <input
                                     type="number"
                                     value={editingLevel.maxMembersPerGroup ?? ''}
                                     onChange={(e) => setEditingLevel({ ...editingLevel, maxMembersPerGroup: e.target.value })}
-                                    placeholder="Để trống = dùng mặc định"
+                                    placeholder={MSG.ADMIN.LEVEL.EDIT_PLACEHOLDER_DEFAULT}
                                     className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700">Số link tối đa/nhóm</label>
+                                <label className="block text-sm font-medium text-slate-700">{MSG.ADMIN.LEVEL.EDIT_LABEL_MAX_LINKS}</label>
                                 <input
                                     type="number"
                                     value={editingLevel.maxLinksPerGroup ?? ''}
                                     onChange={(e) => setEditingLevel({ ...editingLevel, maxLinksPerGroup: e.target.value })}
-                                    placeholder="Để trống = dùng mặc định"
+                                    placeholder={MSG.ADMIN.LEVEL.EDIT_PLACEHOLDER_DEFAULT}
                                     className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 />
                             </div>
@@ -481,7 +483,7 @@ const LevelManagementPage = () => {
                                         onChange={(e) => setEditingLevel({ ...editingLevel, allowPassword: e.target.checked })}
                                         className="h-5 w-5 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
                                     />
-                                    <span className="text-sm text-slate-700">Cho phép mật khẩu</span>
+                                    <span className="text-sm text-slate-700">{MSG.ADMIN.LEVEL.EDIT_LABEL_ALLOW_PASSWORD}</span>
                                 </label>
                                 <label className="flex items-center gap-3 cursor-pointer">
                                     <input
@@ -490,7 +492,7 @@ const LevelManagementPage = () => {
                                         onChange={(e) => setEditingLevel({ ...editingLevel, allowCustomExpiration: e.target.checked })}
                                         className="h-5 w-5 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
                                     />
-                                    <span className="text-sm text-slate-700">Cho phép tùy chỉnh Hết hạn</span>
+                                    <span className="text-sm text-slate-700">{MSG.ADMIN.LEVEL.EDIT_LABEL_ALLOW_EXPIRATION}</span>
                                 </label>
                             </div>
                         </div>
@@ -500,13 +502,13 @@ const LevelManagementPage = () => {
                                 disabled={isUpdating}
                                 className="flex-1 rounded-2xl bg-blue-500 px-4 py-3 text-white transition hover:bg-blue-600 disabled:opacity-50"
                             >
-                                {isUpdating ? 'Đang cập nhật...' : 'Cập nhật'}
+                                {isUpdating ? MSG.ADMIN.LEVEL.BTN_SAVING : MSG.ADMIN.LEVEL.BTN_SAVE}
                             </button>
                             <button
                                 onClick={() => setEditingLevel(null)}
                                 className="flex-1 rounded-2xl bg-slate-200 px-4 py-3 text-slate-700 transition hover:bg-slate-300"
                             >
-                                Hủy
+                                {MSG.ADMIN.LEVEL.BTN_CANCEL}
                             </button>
                         </div>
                     </div>

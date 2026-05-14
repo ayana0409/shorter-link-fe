@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { getTokenWithExpiry } from "../constants/localStorage";
 import PageWrapper from "../components/PageWrapper";
 import QrCodePreview from "../components/QrCodePreview";
+import { MSG } from "../constants/messages";
 
 const isValidUrl = (string) => {
   try {
@@ -18,7 +19,7 @@ const isValidUrl = (string) => {
 
 const LineChart = ({ data }) => {
   if (!data || data.length === 0) {
-    return <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-500">Chưa có dữ liệu biểu đồ</div>;
+    return <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-500">{MSG.SHORTENER.CHART_NO_DATA}</div>;
   }
 
   const width = 640;
@@ -151,7 +152,7 @@ const CreateLink = () => {
         setTotalPages(response.totalPages || 1);
       })
       .catch((error) => {
-        const message = error.response?.data?.error?.message || 'Không thể tải danh sách liên kết';
+        const message = error.response?.data?.error?.message || MSG.SHORTENER.ERR_LOAD_LINKS;
         toast.error(message);
       });
   };
@@ -170,18 +171,18 @@ const CreateLink = () => {
 
   const toggleLinkStatus = (link) => {
     if (isLinkExpired(link)) {
-      toast.error('Liên kết đã hết hạn, không thể thay đổi trạng thái');
+      toast.error(MSG.SHORTENER.ERR_EXPIRED_TOGGLE);
       return;
     }
 
     const nextStatus = link.status === 'disabled' ? 'active' : 'disabled';
     patch(`shortener/${link._id}`, { status: nextStatus })
       .then(() => {
-        toast.success('Cập nhật trạng thái liên kết thành công');
+        toast.success(MSG.SHORTENER.SUCCESS_TOGGLE);
         refreshLinks();
       })
       .catch((error) => {
-        const message = error.response?.data?.error?.message || 'Không thể cập nhật trạng thái liên kết';
+        const message = error.response?.data?.error?.message || MSG.SHORTENER.ERR_TOGGLE;
         toast.error(message);
       });
   };
@@ -192,23 +193,23 @@ const CreateLink = () => {
     }
 
     if (!originalLink) {
-      toast.error("Vui lòng nhập liên kết gốc");
+      toast.error(MSG.SHORTENER.ERR_EMPTY_ORIGINAL);
       return;
     }
 
     const validatedUrl = isValidUrl(originalLink);
     if (!validatedUrl) {
-      toast.error("Liên kết gốc không hợp lệ. Vui lòng kiểm tra lại");
+      toast.error(MSG.SHORTENER.ERR_INVALID_URL);
       return;
     }
 
     if (createPassword) {
       if (!password.trim() || !confirmPassword.trim()) {
-        toast.error("Vui lòng nhập mật khẩu và xác nhận mật khẩu");
+        toast.error(MSG.SHORTENER.ERR_EMPTY_PASSWORD);
         return;
       }
       if (password !== confirmPassword) {
-        toast.error("Mật khẩu và xác nhận mật khẩu không trùng khớp");
+        toast.error(MSG.SHORTENER.ERR_PASSWORD_MISMATCH);
         return;
       }
     }
@@ -218,7 +219,7 @@ const CreateLink = () => {
       const fromDate = new Date(validityFromDate);
       const toDate = new Date(validityToDate);
       if (fromDate >= toDate) {
-        toast.error("Thời gian bắt đầu phải trước thời gian kết thúc");
+        toast.error(MSG.SHORTENER.ERR_DATE_RANGE);
         return;
       }
     }
@@ -237,7 +238,7 @@ const CreateLink = () => {
       .then((response) => {
         if (response?.shortUrl) {
           setShortLink(`${clientUrl}/s/${response.shortUrl}`);
-          toast.success("Tạo liên kết thành công!");
+          toast.success(MSG.SHORTENER.SUCCESS_CREATE);
           refreshLinks();
           fetchQuota();
           setCreatePassword(false);
@@ -248,11 +249,11 @@ const CreateLink = () => {
           setValidityToDate("");
           setNoExpiration(false);
         } else {
-          toast.error("Không thể tạo liên kết");
+          toast.error(MSG.SHORTENER.ERR_CREATE);
         }
       })
       .catch((error) => {
-        const message = error.response?.data?.error?.message || 'Không thể tạo liên kết';
+        const message = error.response?.data?.error?.message || MSG.SHORTENER.ERR_CREATE;
         toast.error(message);
       })
       .finally(() => {
@@ -262,19 +263,19 @@ const CreateLink = () => {
 
   const getLinkStatus = (link) => {
     if (link.status === 'disabled') {
-      return 'Đã xóa';
+      return MSG.SHORTENER.STATUS_DELETED;
     }
 
     if (link.noExpiration) {
-      return 'Không hết hạn';
+      return MSG.SHORTENER.STATUS_NO_EXPIRE;
     }
 
     const expiresAt = link.expiresAt ? new Date(link.expiresAt) : null;
     if (expiresAt && expiresAt < new Date()) {
-      return 'Hết hạn';
+      return MSG.SHORTENER.STATUS_EXPIRED;
     }
 
-    return 'Còn hạn';
+    return MSG.SHORTENER.STATUS_VALID;
   };
 
   const fetchAnalytics = () => {
@@ -320,7 +321,7 @@ const CreateLink = () => {
     if (shortLink) {
       if (navigator.clipboard) {
         navigator.clipboard.writeText(shortLink);
-        toast.success("Đã sao chép liên kết!");
+        toast.success(MSG.SHORTENER.COPY_SUCCESS);
       } else {
         // Fallback for older browsers
         const textArea = document.createElement("textarea");
@@ -329,31 +330,31 @@ const CreateLink = () => {
         textArea.select();
         document.execCommand("copy");
         document.body.removeChild(textArea);
-        toast.success("Đã sao chép liên kết!");
+        toast.success(MSG.SHORTENER.COPY_SUCCESS);
       }
     }
   };
 
   return (
     <PageWrapper
-      title="Shorter Link"
-      subtitle="Tạo, quản lý và theo dõi liên kết rút gọn của bạn trong một giao diện hiện đại"
+      title={MSG.SHORTENER.PAGE_TITLE}
+      subtitle={MSG.SHORTENER.PAGE_SUBTITLE}
     >
-      <h1 className="text-4xl font-semibold text-slate-900 uppercase text-center">Tạo liên kết rút gọn</h1>
+      <h1 className="text-4xl font-semibold text-slate-900 uppercase text-center">{MSG.SHORTENER.HEADING_CREATE}</h1>
       {isLoggedIn && quotaInfo && (
         <div className="mx-auto mb-6 max-w-4xl rounded-3xl border border-slate-200 bg-slate-50 p-4 text-slate-700 shadow-sm shadow-slate-300/10">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm text-slate-500">Xin chào</p>
+              <p className="text-sm text-slate-500">{MSG.SHORTENER.GREETING}</p>
               <p className="text-lg font-semibold text-slate-900">{quotaInfo.fullName}</p>
-              <p className="text-sm text-slate-500">Level: {quotaInfo.level ? quotaInfo.level.name : 'Free'}</p>
+              <p className="text-sm text-slate-500">{MSG.SHORTENER.LABEL_LEVEL} {quotaInfo.level ? quotaInfo.level.name : MSG.SHORTENER.LEVEL_FREE}</p>
             </div>
             <div className="rounded-3xl bg-white p-4 shadow-sm shadow-slate-200">
               {quotaInfo.unlimited ? (
-                <p className="text-sm text-slate-500">Admin không bị giới hạn</p>
+                <p className="text-sm text-slate-500">{MSG.SHORTENER.ADMIN_UNLIMITED}</p>
               ) : (
                 <>
-                  <p className="text-sm text-slate-500">Lượt tạo link còn lại hôm nay</p>
+                  <p className="text-sm text-slate-500">{MSG.SHORTENER.LABEL_REMAINING}</p>
                   <p className="text-xl font-semibold text-slate-900">{quotaInfo.remaining} / {quotaInfo.level?.dailyShortenLimit ? quotaInfo.level.dailyShortenLimit : quotaInfo.limit}</p>
                 </>
               )}
@@ -364,20 +365,20 @@ const CreateLink = () => {
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
           <div className="mb-4">
-            <h2 className="text-2xl font-semibold text-slate-900">Liên kết gốc</h2>
-            <p className="mt-2 text-sm text-slate-600">Nhập liên kết gốc của bạn để tạo liên kết rút gọn.</p>
+            <h2 className="text-2xl font-semibold text-slate-900">{MSG.SHORTENER.SECTION_ORIGINAL}</h2>
+            <p className="mt-2 text-sm text-slate-600">{MSG.SHORTENER.SECTION_ORIGINAL_DESC}</p>
           </div>
           <div className="space-y-4">
 
-            <p className="text-xs text-slate-500 mb-2">💡 Lưu ý:</p>
-            <p className="text-xs text-slate-500 mb-2 ml-8">- Liên kết gốc có thể không chứa protocol (http:// hoặc https://)</p>
-            <p className="text-xs text-slate-500 mb-2 ml-8">- VD: Có thể nhập shink.onrender.com thay vì https://shink.onrender.com</p>
+            <p className="text-xs text-slate-500 mb-2">{MSG.SHORTENER.HINT_TITLE}</p>
+            <p className="text-xs text-slate-500 mb-2 ml-8">{MSG.SHORTENER.HINT_NO_PROTOCOL}</p>
+            <p className="text-xs text-slate-500 mb-2 ml-8">{MSG.SHORTENER.HINT_EXAMPLE}</p>
             <div>
               <input
                 type="text"
                 onChange={(e) => setOriginalLink(e.target.value)}
                 value={originalLink}
-                placeholder="Nhập liên kết gốc"
+                placeholder={MSG.SHORTENER.PLACEHOLDER_ORIGINAL}
                 className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
@@ -391,28 +392,28 @@ const CreateLink = () => {
                       onChange={(e) => setCreatePassword(e.target.checked)}
                       className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                     />
-                    Tạo mật khẩu
+                    {MSG.SHORTENER.CHECKBOX_CREATE_PASSWORD}
                   </label>
                 </div>
                 {createPassword && (
                   <>
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">Mật khẩu*</label>
+                      <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.SHORTENER.LABEL_PASSWORD}</label>
                       <input
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Nhập mật khẩu"
+                        placeholder={MSG.SHORTENER.PLACEHOLDER_PASSWORD}
                         className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </div>
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-slate-700">Xác nhận mật khẩu*</label>
+                      <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.SHORTENER.LABEL_CONFIRM_PASSWORD}</label>
                       <input
                         type="password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Xác nhận mật khẩu"
+                        placeholder={MSG.SHORTENER.PLACEHOLDER_CONFIRM_PASSWORD}
                         className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </div>
@@ -421,12 +422,12 @@ const CreateLink = () => {
               </>
             )}
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Tên trang web</label>
+              <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.SHORTENER.LABEL_SITE_NAME}</label>
               <input
                 type="text"
                 value={siteName}
                 onChange={(e) => setSiteName(e.target.value)}
-                placeholder="Nhập tên trang web (nếu không nhập, sẽ tự động lấy)"
+                placeholder={MSG.SHORTENER.PLACEHOLDER_SITE_NAME}
                 className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
@@ -441,18 +442,18 @@ const CreateLink = () => {
                       onChange={(e) => setNoExpiration(e.target.checked)}
                       className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                     />
-                    Không hết hạn
+                    {MSG.SHORTENER.CHECKBOX_NO_EXPIRATION}
                   </label>
                 </div>
                 {!noExpiration && (
                   <>
-                    <p className="text-xs text-slate-500 mb-2">💡 Lưu ý:</p>
-                    <p className="text-xs text-slate-500 mb-2 ml-8">- Nếu KHÔNG chọn thời gian mở, liên kết sẽ được mở TẠI THỜI ĐIỂM TẠO</p>
-                    <p className="text-xs text-slate-500 mb-2 ml-8">- Nếu KHÔNG chọn thời gian đóng, liên kết sẽ hết hạn theo THỜI GIAN MẶC ĐỊNH</p>
-                    <p className="text-xs text-slate-500 mb-2 ml-8">- Múi giờ +7 (Giờ Hà Nội)</p>
+                    <p className="text-xs text-slate-500 mb-2">{MSG.SHORTENER.HINT_TITLE}</p>
+                    <p className="text-xs text-slate-500 mb-2 ml-8">{MSG.SHORTENER.HINT_NO_OPEN_TIME}</p>
+                    <p className="text-xs text-slate-500 mb-2 ml-8">{MSG.SHORTENER.HINT_NO_CLOSE_TIME}</p>
+                    <p className="text-xs text-slate-500 mb-2 ml-8">{MSG.SHORTENER.HINT_TIMEZONE}</p>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">Thời gian mở</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.SHORTENER.LABEL_OPEN_TIME}</label>
                         <input
                           type="datetime-local"
                           value={validityFromDate}
@@ -461,7 +462,7 @@ const CreateLink = () => {
                         />
                       </div>
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">Thời gian đóng</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.SHORTENER.LABEL_CLOSE_TIME}</label>
                         <input
                           type="datetime-local"
                           value={validityToDate}
@@ -484,21 +485,21 @@ const CreateLink = () => {
                 : 'bg-blue-500 hover:bg-blue-600'
                 }`}
             >
-              {isCreating ? 'Đang rút gọn...' : 'Rút gọn'}
+              {isCreating ? MSG.SHORTENER.BTN_CREATING : MSG.SHORTENER.BTN_CREATE}
             </button>
           </div>
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
           <div className="mb-4">
-            <h2 className="text-2xl font-semibold text-slate-900">Liên kết rút gọn</h2>
-            <p className="mt-2 text-sm text-slate-600">Sao chép và chia sẻ link mới tạo.</p>
+            <h2 className="text-2xl font-semibold text-slate-900">{MSG.SHORTENER.SECTION_SHORT}</h2>
+            <p className="mt-2 text-sm text-slate-600">{MSG.SHORTENER.SECTION_SHORT_DESC}</p>
           </div>
           <div className="space-y-4">
             <input
               type="text"
               value={shortLink}
-              placeholder="Liên kết rút gọn"
+              placeholder={MSG.SHORTENER.PLACEHOLDER_SHORT}
               readOnly
               className="w-full rounded-2xl border border-slate-300 bg-slate-100 px-4 py-3 text-slate-900"
             />
@@ -506,7 +507,7 @@ const CreateLink = () => {
               onClick={copyToClipboard}
               className="w-full rounded-2xl bg-emerald-500 px-4 py-3 text-white shadow-md shadow-emerald-500/10 transition hover:bg-emerald-600"
             >
-              Sao chép
+              {MSG.SHORTENER.BTN_COPY}
             </button>
           </div>
         </section>
@@ -514,7 +515,7 @@ const CreateLink = () => {
 
       {isLoggedIn && (
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900 uppercase text-center mb-6">Liên kết của bạn</h1>
+          <h1 className="text-3xl font-semibold text-slate-900 uppercase text-center mb-6">{MSG.SHORTENER.HEADING_YOUR_LINKS}</h1>
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
             <div className="mb-6 flex flex-col gap-4">
               <div>
@@ -527,7 +528,7 @@ const CreateLink = () => {
                     setCurrentPage(1);
                     refreshLinks(1, nextSearch, statusFilter, sortBy, sortOrder);
                   }}
-                  placeholder="Tìm kiếm theo tên web"
+                  placeholder={MSG.SHORTENER.SEARCH_PLACEHOLDER}
                   className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 />
               </div>
@@ -542,10 +543,10 @@ const CreateLink = () => {
                   }}
                   className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 >
-                  <option value="valid">Còn hạn</option>
-                  <option value="expired">Hết hạn</option>
-                  <option value="disabled">Đã xóa</option>
-                  <option value="all">Tất cả</option>
+                  <option value="valid">{MSG.SHORTENER.FILTER_VALID}</option>
+                  <option value="expired">{MSG.SHORTENER.FILTER_EXPIRED}</option>
+                  <option value="disabled">{MSG.SHORTENER.FILTER_DISABLED}</option>
+                  <option value="all">{MSG.SHORTENER.FILTER_ALL}</option>
                 </select>
                 <select
                   value={sortBy}
@@ -557,9 +558,9 @@ const CreateLink = () => {
                   }}
                   className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 >
-                  <option value="createdAt">Mới nhất</option>
-                  <option value="siteName">Tên trang</option>
-                  <option value="clicks">Lượt click</option>
+                  <option value="createdAt">{MSG.SHORTENER.SORT_NEWEST}</option>
+                  <option value="siteName">{MSG.SHORTENER.SORT_NAME}</option>
+                  <option value="clicks">{MSG.SHORTENER.SORT_CLICKS}</option>
                 </select>
                 <select
                   value={sortOrder}
@@ -571,14 +572,14 @@ const CreateLink = () => {
                   }}
                   className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                 >
-                  <option value="desc">Giảm dần</option>
-                  <option value="asc">Tăng dần</option>
+                  <option value="desc">{MSG.SHORTENER.SORT_DESC}</option>
+                  <option value="asc">{MSG.SHORTENER.SORT_ASC}</option>
                 </select>
                 <button
                   onClick={() => refreshLinks(currentPage)}
                   className="rounded-2xl bg-blue-500 px-4 py-3 text-white shadow-md shadow-blue-500/10 transition hover:bg-blue-600"
                 >
-                  Làm mới
+                  {MSG.SHORTENER.BTN_REFRESH}
                 </button>
               </div>
             </div>
@@ -589,12 +590,12 @@ const CreateLink = () => {
                   <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
                     <thead className="bg-slate-50 text-slate-700">
                       <tr>
-                        <th className="px-4 py-3">Tên trang web</th>
-                        <th className="px-4 py-3">Link rút gọn</th>
-                        <th className="px-4 py-3">Bảo mật</th>
-                        <th className="px-4 py-3">Lượt click</th>
-                        <th className="px-4 py-3">Trạng thái</th>
-                        <th className="px-4 py-3">Hành động</th>
+                        <th className="px-4 py-3">{MSG.SHORTENER.COL_SITE_NAME}</th>
+                        <th className="px-4 py-3">{MSG.SHORTENER.COL_SHORT_LINK}</th>
+                        <th className="px-4 py-3">{MSG.SHORTENER.COL_SECURITY}</th>
+                        <th className="px-4 py-3">{MSG.SHORTENER.COL_CLICKS}</th>
+                        <th className="px-4 py-3">{MSG.SHORTENER.COL_STATUS}</th>
+                        <th className="px-4 py-3">{MSG.SHORTENER.COL_ACTION}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
@@ -603,7 +604,7 @@ const CreateLink = () => {
                           <tr className="hover:bg-slate-50">
                             <td className="px-4 py-3">
                               <span title={link.originalUrl} className="cursor-help underline decoration-dotted">
-                                {link.siteName ?? 'Không rõ'}
+                                {link.siteName ?? MSG.SHORTENER.SITE_UNKNOWN}
                               </span>
                             </td>
                             <td className="px-4 py-3">
@@ -618,18 +619,18 @@ const CreateLink = () => {
                                   onClick={() => {
                                     if (navigator.clipboard) {
                                       navigator.clipboard.writeText(`${clientUrl}/s/${link.shortUrl}`);
-                                      toast.success('Đã sao chép link rút gọn');
+                                      toast.success(MSG.SHORTENER.COPY_LINK_SUCCESS);
                                     }
                                   }}
                                   className="rounded-full border border-slate-300 bg-slate-100 px-2 py-1 text-xs text-slate-600 hover:bg-slate-200"
                                 >
-                                  Copy
+                                  {MSG.SHORTENER.BTN_COPY}
                                 </button>
                               </div>
                             </td>
                             <td className="px-4 py-3">
                               <span className={link.passwordProtected ? 'inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-orange-700' : 'inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700'}>
-                                {link.passwordProtected ? 'Có' : 'Không'}
+                                {link.passwordProtected ? MSG.SHORTENER.SECURE_YES : MSG.SHORTENER.SECURE_NO}
                               </span>
                             </td>
                             <td className="px-4 py-3">{link.clicks ?? 0}</td>
@@ -638,15 +639,15 @@ const CreateLink = () => {
                                 <span>{getLinkStatus(link)}</span>
                                 {link.validityFromDate && (
                                   <span className="text-xs text-slate-500">
-                                    Bắt đầu: {new Date(link.validityFromDate).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
+                                    {MSG.SHORTENER.LABEL_START} {new Date(link.validityFromDate).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
                                   </span>
                                 )}
                                 {link.noExpiration ? (
-                                  <span className="text-xs text-green-600">Không hết hạn</span>
+                                  <span className="text-xs text-green-600">{MSG.SHORTENER.STATUS_NO_EXPIRE}</span>
                                 ) : (
                                   link.expiresAt && (
                                     <span className="text-xs text-slate-500">
-                                      Hết hạn: {new Date(link.expiresAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
+                                      {MSG.SHORTENER.LABEL_EXPIRES} {new Date(link.expiresAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
                                     </span>
                                   )
                                 )}
@@ -662,14 +663,14 @@ const CreateLink = () => {
                                     ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                                     : 'bg-orange-500 text-white hover:bg-orange-600'}`}
                               >
-                                {link.status === 'disabled' ? 'Bật' : 'Tắt'}
+                                {link.status === 'disabled' ? MSG.SHORTENER.BTN_ENABLE : MSG.SHORTENER.BTN_DISABLE}
                               </button>
                               <button
                                 onClick={() => setActiveQrLinkId(activeQrLinkId === link._id ? "" : link._id)}
                                 disabled={isLinkExpired(link) || link.status === 'disabled'}
                                 className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 hover:bg-slate-200 transition disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
                               >
-                                {activeQrLinkId === link._id ? 'Ẩn QR' : 'QR'}
+                                {activeQrLinkId === link._id ? MSG.SHORTENER.BTN_HIDE_QR : MSG.SHORTENER.BTN_QR}
                               </button>
                               {quotaInfo?.level?.allowPassword && (
                                 <>
@@ -687,7 +688,7 @@ const CreateLink = () => {
                                     }}
                                     className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 hover:bg-slate-200 transition"
                                   >
-                                    {editingPasswordLinkId === link._id ? 'Hủy mật khẩu' : 'Đổi mật khẩu'}
+                                    {editingPasswordLinkId === link._id ? MSG.SHORTENER.BTN_CANCEL_PASSWORD : MSG.SHORTENER.BTN_CHANGE_PASSWORD}
                                   </button>
                                   {editingPasswordLinkId === link._id && (
                                     <div className="flex w-full flex-col gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-3">
@@ -695,43 +696,43 @@ const CreateLink = () => {
                                         type="password"
                                         value={newLinkPassword}
                                         onChange={(e) => setNewLinkPassword(e.target.value)}
-                                        placeholder="Mật khẩu mới"
+                                        placeholder={MSG.SHORTENER.NEW_PASSWORD_PLACEHOLDER}
                                         className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
                                       />
                                       <input
                                         type="password"
                                         value={confirmNewLinkPassword}
                                         onChange={(e) => setConfirmNewLinkPassword(e.target.value)}
-                                        placeholder="Xác nhận mật khẩu"
+                                        placeholder={MSG.SHORTENER.PLACEHOLDER_CONFIRM_PASSWORD}
                                         className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
                                       />
                                       <button
                                         type="button"
                                         onClick={() => {
                                           if (!newLinkPassword.trim() || !confirmNewLinkPassword.trim()) {
-                                            toast.error('Vui lòng nhập mật khẩu và xác nhận mật khẩu');
+                                            toast.error(MSG.SHORTENER.ERR_EMPTY_PASSWORD);
                                             return;
                                           }
                                           if (newLinkPassword !== confirmNewLinkPassword) {
-                                            toast.error('Mật khẩu và xác nhận mật khẩu không khớp');
+                                            toast.error(MSG.SHORTENER.ERR_PASSWORD_MISMATCH);
                                             return;
                                           }
                                           patch(`shortener/${link._id}`, { password: newLinkPassword })
                                             .then(() => {
-                                              toast.success('Cập nhật mật khẩu liên kết thành công');
+                                              toast.success(MSG.SHORTENER.SUCCESS_PASSWORD);
                                               setEditingPasswordLinkId("");
                                               setNewLinkPassword("");
                                               setConfirmNewLinkPassword("");
                                               refreshLinks(currentPage);
                                             })
                                             .catch((error) => {
-                                              const message = error.response?.data?.error?.message || 'Không thể cập nhật mật khẩu liên kết';
+                                              const message = error.response?.data?.error?.message || MSG.SHORTENER.ERR_PASSWORD;
                                               toast.error(message);
                                             });
                                         }}
                                         className="rounded-2xl bg-blue-500 px-3 py-2 text-white text-sm hover:bg-blue-600 transition"
                                       >
-                                        Lưu mật khẩu
+                                        {MSG.SHORTENER.BTN_SAVE_PASSWORD}
                                       </button>
                                     </div>
                                   )}
@@ -762,9 +763,9 @@ const CreateLink = () => {
                     disabled={currentPage === 1}
                     className="rounded-2xl bg-slate-200 px-4 py-2 text-slate-700 disabled:opacity-50"
                   >
-                    Trước
+                    {MSG.SHORTENER.PAGE_PREV}
                   </button>
-                  <div className="text-sm text-slate-700">Trang {currentPage} / {totalPages}</div>
+                  <div className="text-sm text-slate-700">{MSG.SHORTENER.PAGE_INFO(currentPage, totalPages)}</div>
                   <button
                     onClick={() => {
                       const nextPage = Math.min(currentPage + 1, totalPages);
@@ -774,12 +775,12 @@ const CreateLink = () => {
                     disabled={currentPage === totalPages}
                     className="rounded-2xl bg-slate-200 px-4 py-2 text-slate-700 disabled:opacity-50"
                   >
-                    Sau
+                    {MSG.SHORTENER.PAGE_NEXT}
                   </button>
                 </div>
               </>
             ) : (
-              <p className="text-center text-slate-500 py-8">Chưa có liên kết nào</p>
+              <p className="text-center text-slate-500 py-8">{MSG.SHORTENER.NO_LINKS}</p>
             )}
           </section>
         </div>
@@ -789,8 +790,8 @@ const CreateLink = () => {
         <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-2xl font-semibold text-slate-900">Biểu đồ tăng trưởng</h2>
-              <p className="mt-2 text-sm text-slate-600">Theo dõi số lượng link tạo theo ngày/tuần.</p>
+              <h2 className="text-2xl font-semibold text-slate-900">{MSG.SHORTENER.CHART_TITLE}</h2>
+              <p className="mt-2 text-sm text-slate-600">{MSG.SHORTENER.CHART_SUBTITLE}</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
               <select
@@ -801,8 +802,8 @@ const CreateLink = () => {
                 }}
                 className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               >
-                <option value="daily">Theo ngày</option>
-                <option value="weekly">Theo tuần</option>
+                <option value="daily">{MSG.SHORTENER.FILTER_DAILY}</option>
+                <option value="weekly">{MSG.SHORTENER.FILTER_WEEKLY}</option>
               </select>
               <input
                 type="date"
@@ -822,7 +823,7 @@ const CreateLink = () => {
             onClick={fetchAnalytics}
             className="mb-6 rounded-2xl bg-blue-500 px-4 py-3 text-white shadow-md shadow-blue-500/10 transition hover:bg-blue-600"
           >
-            Cập nhật biểu đồ
+            {MSG.SHORTENER.BTN_UPDATE_CHART}
           </button>
           <LineChart data={analyticsData} />
         </section>

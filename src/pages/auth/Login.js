@@ -4,6 +4,7 @@ import { post } from "../../utils/request";
 import toast from "react-hot-toast";
 import { setTokenWithExpiry, getTokenWithExpiry } from "../../constants/localStorage";
 import PageWrapper from "../../components/PageWrapper";
+import { MSG } from "../../constants/messages";
 
 const Login = () => {
     const [user, setUser] = useState({
@@ -27,13 +28,13 @@ const Login = () => {
         post('/auth/login', user)
             .then(res => {
                 setTokenWithExpiry(res.access_token, res.expires_in * 1000);
-                toast.success('Login successfully');
+                toast.success(MSG.LOGIN.SUCCESS);
                 navigate(redirectTo, { replace: true });
             })
             .catch(err => {
                 console.error(err);
-                const rawMessage = err.response?.data?.message || err.response?.data?.error?.message;
-                const message = Array.isArray(rawMessage) ? rawMessage.join(' ') : String(rawMessage || 'An unexpected error occurred');
+                const rawMessage = err.response?.data?.error?.message || err.response?.data?.message;
+                const message = Array.isArray(rawMessage) ? rawMessage.join(' ') : String(rawMessage || MSG.COMMON.GENERIC_ERROR);
                 toast.error(message);
                 if (err.response?.status === 403 && /khóa|locked|bị khóa/i.test(message)) {
                     navigate('/locked', { replace: true });
@@ -55,15 +56,15 @@ const Login = () => {
 
     return (
         <PageWrapper
-            title="Đăng nhập"
-            subtitle="Truy cập vào trang quản lý liên kết của bạn"
+            title={MSG.LOGIN.TITLE}
+            subtitle={MSG.LOGIN.SUBTITLE}
         >
             <div className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm shadow-slate-300/10">
-                <h2 className="text-3xl font-bold mb-2 text-center text-slate-900">Đăng nhập</h2>
-                <p className="text-center text-slate-600 mb-6">Hãy đăng nhập để bắt đầu sử dụng</p>
+                <h2 className="text-3xl font-bold mb-2 text-center text-slate-900">{MSG.LOGIN.FORM_TITLE}</h2>
+                <p className="text-center text-slate-600 mb-6">{MSG.LOGIN.FORM_SUBTITLE}</p>
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">Username</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.LOGIN.LABEL_USERNAME}</label>
                         <input
                             type="text"
                             name="username"
@@ -74,7 +75,7 @@ const Login = () => {
                         />
                     </div>
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">Password</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.LOGIN.LABEL_PASSWORD}</label>
                         <input
                             type="password"
                             name="password"
@@ -88,13 +89,13 @@ const Login = () => {
                         type="submit"
                         className="w-full rounded-2xl bg-blue-500 px-4 py-3 text-white shadow-md shadow-blue-500/10 transition hover:bg-blue-600"
                     >
-                        Đăng nhập
+                        {MSG.LOGIN.BTN_SUBMIT}
                     </button>
                 </form>
                 <div className="mt-4 text-center text-sm text-slate-600">
-                    Chưa có tài khoản?{' '}
+                    {MSG.LOGIN.NO_ACCOUNT}{' '}
                     <Link to="/register" className="font-semibold text-blue-600 hover:text-blue-700">
-                        Đăng ký ngay
+                        {MSG.LOGIN.REGISTER_NOW}
                     </Link>
                 </div>
             </div>

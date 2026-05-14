@@ -4,6 +4,7 @@ import { get, patch } from '../../utils/request';
 import toast from 'react-hot-toast';
 import { getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
 import PageWrapper from '../../components/PageWrapper';
+import { MSG } from '../../constants/messages';
 
 const SystemConfigPage = () => {
     const navigate = useNavigate();
@@ -42,8 +43,8 @@ const SystemConfigPage = () => {
             });
             setInputValues(initialValues);
         } catch (error) {
-            console.error('Failed to fetch configs:', error);
-            toast.error('Không thể tải cấu hình hệ thống');
+            const message = error.response?.data?.error?.message || MSG.ADMIN.CONFIG.ERR_LOAD;
+            toast.error(message);
         } finally {
             setLoading(false);
         }
@@ -65,38 +66,38 @@ const SystemConfigPage = () => {
                 ...prev,
                 [key]: newValue
             }));
-            toast.success('Cập nhật cấu hình thành công!');
+            toast.success(MSG.ADMIN.CONFIG.SUCCESS_UPDATE);
         } catch (error) {
-            console.error('Failed to update config:', error);
-            toast.error('Cập nhật thất bại: ' + (error.response?.data?.message || error.message));
+            const errMsg = error.response?.data?.error?.message || error.response?.data?.message || error.message;
+            toast.error(MSG.ADMIN.CONFIG.ERR_UPDATE + errMsg);
         } finally {
             setUpdatingKey(null);
         }
     };
 
     if (loading) {
-        return <div className="flex justify-center items-center h-screen">Đang tải...</div>;
+        return <div className="flex justify-center items-center h-screen">{MSG.COMMON.LOADING}</div>;
     }
 
     return (
         <PageWrapper
-            title="Cấu hình hệ thống"
-            subtitle="Quản lý các thông số vận hành và cài đặt kỹ thuật của hệ thống"
+            title={MSG.ADMIN.CONFIG.PAGE_TITLE}
+            subtitle={MSG.ADMIN.CONFIG.PAGE_SUBTITLE}
         >
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
                 <div className="mb-8">
-                    <h2 className="text-2xl font-semibold text-slate-900">Quản lý Cấu hình Hệ thống</h2>
-                    <p className="mt-2 text-sm text-slate-600">Thay đổi các giá trị bên dưới để điều chỉnh hành vi của ứng dụng trong thời gian thực.</p>
+                    <h2 className="text-2xl font-semibold text-slate-900">{MSG.ADMIN.CONFIG.TITLE}</h2>
+                    <p className="mt-2 text-sm text-slate-600">{MSG.ADMIN.CONFIG.DESC}</p>
                 </div>
 
                 <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-slate-50">
                     <table className="min-w-full divide-y divide-slate-200 text-sm text-slate-700">
                         <thead className="bg-slate-100 text-slate-900">
                             <tr>
-                                <th className="px-6 py-4 text-left font-semibold">Key</th>
-                                <th className="px-6 py-4 text-left font-semibold">Giá trị</th>
-                                <th className="px-6 py-4 text-left font-semibold">Mô tả</th>
-                                <th className="px-6 py-4 text-center font-semibold">Hành động</th>
+                                <th className="px-6 py-4 text-left font-semibold">{MSG.ADMIN.CONFIG.COL_KEY}</th>
+                                <th className="px-6 py-4 text-left font-semibold">{MSG.ADMIN.CONFIG.COL_VALUE}</th>
+                                <th className="px-6 py-4 text-left font-semibold">{MSG.ADMIN.CONFIG.COL_DESC}</th>
+                                <th className="px-6 py-4 text-center font-semibold">{MSG.ADMIN.CONFIG.COL_ACTION}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 bg-white">
@@ -120,7 +121,7 @@ const SystemConfigPage = () => {
                                                 <button
                                                     onClick={() => toggleVisibility(config.key)}
                                                     className="p-2 text-slate-500 hover:text-blue-600 transition"
-                                                    title={visibleKeys[config.key] ? "Ẩn giá trị" : "Hiện giá trị"}
+                                                    title={visibleKeys[config.key] ? MSG.ADMIN.CONFIG.TOOLTIP_HIDE : MSG.ADMIN.CONFIG.TOOLTIP_SHOW}
                                                 >
                                                     {visibleKeys[config.key] ? '🙈' : '👁️'}
                                                 </button>
@@ -128,7 +129,7 @@ const SystemConfigPage = () => {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-slate-500 max-w-xs">
-                                        {config.description || 'Không có mô tả'}
+                                        {config.description || MSG.ADMIN.CONFIG.NO_DESC}
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         <button
@@ -136,7 +137,7 @@ const SystemConfigPage = () => {
                                             disabled={updatingKey === config.key}
                                             className={`rounded-2xl px-4 py-2 text-sm font-medium text-white shadow-sm transition ${updatingKey === config.key ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600 active:scale-95'}`}
                                         >
-                                            {updatingKey === config.key ? 'Đang lưu...' : 'Cập nhật'}
+                                            {updatingKey === config.key ? MSG.ADMIN.CONFIG.BTN_UPDATING : MSG.ADMIN.CONFIG.BTN_UPDATE}
                                         </button>
                                     </td>
                                 </tr>
@@ -147,8 +148,8 @@ const SystemConfigPage = () => {
                 <div className="mt-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3">
                     <span className="text-amber-600 text-lg">⚠️</span>
                     <p className="text-sm text-amber-700">
-                        <span className="font-bold">Lưu ý quan trọng:</span> <br />
-                        Thay đổi <code className="bg-amber-100 px-1 rounded font-mono font-semibold">MONGO_DB_CONNECTIONSTRING</code> sẽ không có tác dụng ngay lập tức mà cần khởi động lại server để áp dụng kết nối mới do cơ chế khởi tạo connection pool của Mongoose.
+                        <span className="font-bold">{MSG.ADMIN.CONFIG.WARNING_TITLE}</span> <br />
+                        {MSG.ADMIN.CONFIG.WARNING_MONGO('MONGO_DB_CONNECTIONSTRING')}
                     </p>
                 </div>
             </div>

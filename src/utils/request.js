@@ -1,5 +1,6 @@
 import axios from "axios";
 import { getTokenWithExpiry, removeToken } from "../constants/localStorage";
+import { MSG } from "../constants/messages";
 
 const getToken = () => {
     return getTokenWithExpiry();
@@ -33,7 +34,7 @@ request.interceptors.response.use(
     error => {
         if (error.response) {
             const status = error.response.status;
-            const rawMessage = error.response.data?.message;
+            const rawMessage = error.response.data?.error?.message || error.response.data?.message;
             const message = Array.isArray(rawMessage)
                 ? rawMessage.join(' ')
                 : String(rawMessage || '');

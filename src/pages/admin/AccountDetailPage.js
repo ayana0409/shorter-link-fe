@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { get, patch, remove } from '../../utils/request';
 import toast from 'react-hot-toast';
 import { getTokenPayload, getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
+import { MSG } from '../../constants/messages';
 import PageWrapper from '../../components/PageWrapper';
 import QrCodePreview from '../../components/QrCodePreview';
 
@@ -70,7 +71,7 @@ const AccountDetailPage = () => {
                 setTotalPages(totalPagesFromResponse);
             })
             .catch((error) => {
-                const message = error.response?.data?.message || 'Không thể tải chi tiết tài khoản';
+                const message = error.response?.data?.error?.message || MSG.ACCOUNT.ERR_LOAD_DETAIL;
                 toast.error(message);
             });
     };
@@ -89,12 +90,12 @@ const AccountDetailPage = () => {
         setIsSaving(true);
         patch(`account/${id}`, payload)
             .then((updatedAccount) => {
-                toast.success('Cập nhật tài khoản thành công');
+                toast.success(MSG.ACCOUNT.SUCCESS_UPDATE);
                 setAccount(updatedAccount);
                 setEditAccount({ ...editAccount, password: '' });
             })
             .catch((error) => {
-                const message = error.response?.data?.message || 'Không thể cập nhật tài khoản';
+                const message = error.response?.data?.error?.message || MSG.ACCOUNT.ERR_UPDATE;
                 toast.error(message);
             })
             .finally(() => {
@@ -103,18 +104,18 @@ const AccountDetailPage = () => {
     };
 
     const deleteAccount = () => {
-        if (!window.confirm('Bạn có chắc muốn xóa tài khoản này?')) {
+        if (!window.confirm(MSG.ACCOUNT.CONFIRM_DELETE)) {
             return;
         }
 
         setIsDeleting(true);
         remove(`account/${id}`)
             .then(() => {
-                toast.success('Xóa tài khoản thành công');
+                toast.success(MSG.ACCOUNT.SUCCESS_DELETE);
                 navigate('/admin/accounts');
             })
             .catch((error) => {
-                const message = error.response?.data?.message || 'Không thể xóa tài khoản';
+                const message = error.response?.data?.error?.message || MSG.ACCOUNT.ERR_DELETE;
                 toast.error(message);
             })
             .finally(() => {
@@ -128,7 +129,7 @@ const AccountDetailPage = () => {
         }
         const currentUser = getTokenPayload();
         if (currentUser?._id === account._id || currentUser?.username === account.username) {
-            toast.error('Không thể khóa tài khoản đang đăng nhập');
+            toast.error(MSG.ACCOUNT.ERR_SELF_LOCK);
             return;
         }
         const nextStatus = !account.isActive;
@@ -136,11 +137,11 @@ const AccountDetailPage = () => {
 
         patch(`account/${id}/active`, { isActive: nextStatus })
             .then((updatedAccount) => {
-                toast.success(`Tài khoản ${nextStatus ? 'đã được mở khóa' : 'đã bị khóa'}`);
+                toast.success(MSG.ACCOUNT.SUCCESS_TOGGLE(nextStatus));
                 setAccount(updatedAccount);
             })
             .catch((error) => {
-                const message = error.response?.data?.message || 'Không thể thay đổi trạng thái tài khoản';
+                const message = error.response?.data?.error?.message || MSG.ACCOUNT.ERR_TOGGLE;
                 toast.error(message);
             })
             .finally(() => {
@@ -171,15 +172,15 @@ const AccountDetailPage = () => {
 
     const getLinkStatus = (link) => {
         if (link.status === 'disabled') {
-            return 'Đã xóa';
+            return MSG.ACCOUNT.STATUS_DELETED;
         }
 
         const expiresAt = link.expiresAt ? new Date(link.expiresAt) : null;
         if (expiresAt && expiresAt < new Date()) {
-            return 'Hết hạn';
+            return MSG.ACCOUNT.STATUS_EXPIRED;
         }
 
-        return 'Còn hạn';
+        return MSG.ACCOUNT.STATUS_VALID;
     };
 
     const isLinkExpired = (link) => {
@@ -191,18 +192,18 @@ const AccountDetailPage = () => {
 
     const toggleLinkStatus = (link) => {
         if (isLinkExpired(link)) {
-            toast.error('Liên kết đã hết hạn, không thể thay đổi trạng thái');
+            toast.error(MSG.ACCOUNT.ERR_EXPIRED_TOGGLE);
             return;
         }
 
         const nextStatus = link.status === 'disabled' ? 'active' : 'disabled';
         patch(`shortener/${link._id || link.id}`, { status: nextStatus })
             .then(() => {
-                toast.success('Cập nhật trạng thái liên kết thành công');
+                toast.success(MSG.ACCOUNT.SUCCESS_TOGGLE_LINK);
                 refreshLinks(currentPage);
             })
             .catch((error) => {
-                const message = error.response?.data?.message || 'Không thể cập nhật trạng thái liên kết';
+                const message = error.response?.data?.error?.message || MSG.ACCOUNT.ERR_TOGGLE_LINK;
                 toast.error(message);
             });
     };
@@ -210,11 +211,11 @@ const AccountDetailPage = () => {
     const deleteLink = (linkId) => {
         remove(`shortener/${linkId}`)
             .then(() => {
-                toast.success('Đã xóa liên kết');
+                toast.success(MSG.ACCOUNT.SUCCESS_DELETE_LINK);
                 refreshLinks(currentPage);
             })
             .catch((error) => {
-                const message = error.response?.data?.message || 'Không thể xóa liên kết';
+                const message = error.response?.data?.error?.message || MSG.ACCOUNT.ERR_DELETE_LINK;
                 toast.error(message);
             });
     };
@@ -224,11 +225,11 @@ const AccountDetailPage = () => {
     if (!account) {
         return (
             <PageWrapper
-                title="Chi tiết tài khoản"
-                subtitle="Đang tải thông tin tài khoản và liên kết"
+                title={MSG.ACCOUNT.DETAIL_PAGE_TITLE}
+                subtitle={MSG.ACCOUNT.DETAIL_PAGE_SUBTITLE}
             >
                 <div className="mx-auto max-w-lg rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm shadow-slate-300/10">
-                    Đang tải chi tiết tài khoản...
+                    {MSG.ACCOUNT.DETAIL_LOADING}
                 </div>
             </PageWrapper>
         );
@@ -236,33 +237,33 @@ const AccountDetailPage = () => {
 
     return (
         <PageWrapper
-            title="Chi tiết tài khoản"
-            subtitle="Xem thông tin tài khoản và các liên kết đã tạo"
+            title={MSG.ACCOUNT.DETAIL_PAGE_TITLE}
+            subtitle={MSG.ACCOUNT.DETAIL_PAGE_SUBTITLE}
         >
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
                 <div className="mb-6">
                     <div>
-                        <h2 className="text-2xl font-semibold text-slate-900">Thông tin tài khoản</h2>
-                        <p className="mt-2 text-sm text-slate-600">Thông tin chi tiết và liên kết của người dùng</p>
+                        <h2 className="text-2xl font-semibold text-slate-900">{MSG.ACCOUNT.DETAIL_TITLE}</h2>
+                        <p className="mt-2 text-sm text-slate-600">{MSG.ACCOUNT.DETAIL_DESC}</p>
                     </div>
                 </div>
 
                 <div className="mb-6 rounded-3xl border border-slate-200 bg-slate-50 p-6">
-                    <h3 className="text-xl font-semibold text-slate-900 mb-3">Thông tin tài khoản</h3>
+                    <h3 className="text-xl font-semibold text-slate-900 mb-3">{MSG.ACCOUNT.DETAIL_ACCOUNT_TITLE}</h3>
                     <div className="grid gap-3 md:grid-cols-3">
-                        <p><span className="font-semibold">Username:</span> {account.username}</p>
-                        <p><span className="font-semibold">Fullname:</span> {account.fullname}</p>
-                        <p><span className="font-semibold">Role:</span> {account.role}</p>
+                        <p><span className="font-semibold">{MSG.ACCOUNT.LABEL_USERNAME}</span> {account.username}</p>
+                        <p><span className="font-semibold">{MSG.ACCOUNT.LABEL_FULLNAME}</span> {account.fullname}</p>
+                        <p><span className="font-semibold">{MSG.ACCOUNT.LABEL_ROLE}</span> {account.role}</p>
                         <p className="md:col-span-3 flex items-center gap-3">
-                            <span className="font-semibold">Trạng thái:</span>
+                            <span className="font-semibold">{MSG.ACCOUNT.LABEL_STATUS}</span>
                             <span className={account.isActive ? 'inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700' : 'inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700'}>
-                                {account.isActive ? 'Hoạt động' : 'Đã khóa'}
+                                {account.isActive ? MSG.ACCOUNT.STATUS_ACTIVE : MSG.ACCOUNT.STATUS_LOCKED}
                             </span>
                         </p>
                         <p className="md:col-span-3 flex items-center gap-3">
-                            <span className="font-semibold">Khóa tài khoản:</span>
+                            <span className="font-semibold">{MSG.ACCOUNT.LABEL_LOCK_ACCOUNT}</span>
                             <label className="inline-flex cursor-pointer items-center gap-3 rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-sm transition hover:bg-slate-200 disabled:opacity-50">
-                                <span>{account.isActive ? 'Bật' : 'Tắt'}</span>
+                                <span>{account.isActive ? MSG.ACCOUNT.TOGGLE_ON : MSG.ACCOUNT.TOGGLE_OFF}</span>
                                 <input
                                     type="checkbox"
                                     checked={account.isActive}
@@ -277,12 +278,12 @@ const AccountDetailPage = () => {
 
                 <div className="mb-6 rounded-3xl border border-slate-200 bg-slate-50 p-6">
                     <div className="mb-4">
-                        <h3 className="text-xl font-semibold text-slate-900">Chỉnh sửa tài khoản</h3>
-                        <p className="text-sm text-slate-600">Cập nhật thông tin fullname, mật khẩu hoặc role.</p>
+                        <h3 className="text-xl font-semibold text-slate-900">{MSG.ACCOUNT.EDIT_TITLE}</h3>
+                        <p className="text-sm text-slate-600">{MSG.ACCOUNT.EDIT_DESC}</p>
                     </div>
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr]">
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-slate-700">Fullname</label>
+                            <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.ACCOUNT.EDIT_LABEL_FULLNAME}</label>
                             <input
                                 type="text"
                                 value={editAccount.fullname}
@@ -291,7 +292,7 @@ const AccountDetailPage = () => {
                             />
                         </div>
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-slate-700">Role</label>
+                            <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.ACCOUNT.EDIT_LABEL_ROLE}</label>
                             <select
                                 value={editAccount.role}
                                 onChange={(e) => setEditAccount({ ...editAccount, role: e.target.value })}
@@ -304,12 +305,12 @@ const AccountDetailPage = () => {
                             </select>
                         </div>
                         <div className="md:col-span-2">
-                            <label className="mb-2 block text-sm font-medium text-slate-700">Password mới</label>
+                            <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.ACCOUNT.EDIT_LABEL_PASSWORD}</label>
                             <input
                                 type="password"
                                 value={editAccount.password}
                                 onChange={(e) => setEditAccount({ ...editAccount, password: e.target.value })}
-                                placeholder="Để trống nếu không đổi"
+                                placeholder={MSG.ACCOUNT.EDIT_PASSWORD_PLACEHOLDER}
                                 className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                             />
                         </div>
@@ -320,14 +321,14 @@ const AccountDetailPage = () => {
                             disabled={isSaving}
                             className={`rounded-2xl px-4 py-3 text-white shadow-md transition ${isSaving ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}
                         >
-                            {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+                            {isSaving ? MSG.ACCOUNT.BTN_SAVING : MSG.ACCOUNT.BTN_SAVE}
                         </button>
                         <button
                             onClick={deleteAccount}
                             disabled={isDeleting}
                             className={`rounded-2xl px-4 py-3 text-white shadow-md transition ${isDeleting ? 'bg-slate-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}
                         >
-                            {isDeleting ? 'Đang xóa...' : 'Xóa tài khoản'}
+                            {isDeleting ? MSG.ACCOUNT.BTN_DELETING : MSG.ACCOUNT.BTN_DELETE}
                         </button>
                     </div>
                 </div>
@@ -358,10 +359,10 @@ const AccountDetailPage = () => {
                             }}
                             className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         >
-                            <option value="all">Tất cả</option>
-                            <option value="valid">Còn hạn</option>
-                            <option value="expired">Hết hạn</option>
-                            <option value="disabled">Đã xóa</option>
+                            <option value="all">{MSG.ACCOUNT.FILTER_ALL}</option>
+                            <option value="valid">{MSG.ACCOUNT.FILTER_VALID}</option>
+                            <option value="expired">{MSG.ACCOUNT.FILTER_EXPIRED}</option>
+                            <option value="disabled">{MSG.ACCOUNT.FILTER_DISABLED}</option>
                         </select>
                         <select
                             value={sortBy}
@@ -373,9 +374,9 @@ const AccountDetailPage = () => {
                             }}
                             className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         >
-                            <option value="createdAt">Mới nhất</option>
-                            <option value="siteName">Tên trang</option>
-                            <option value="clicks">Lượt click</option>
+                            <option value="createdAt">{MSG.ACCOUNT.SORT_NEWEST}</option>
+                            <option value="siteName">{MSG.ACCOUNT.SORT_SITE_NAME}</option>
+                            <option value="clicks">{MSG.ACCOUNT.SORT_CLICKS}</option>
                         </select>
                         <select
                             value={sortOrder}
@@ -387,14 +388,14 @@ const AccountDetailPage = () => {
                             }}
                             className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         >
-                            <option value="desc">Giảm dần</option>
-                            <option value="asc">Tăng dần</option>
+                            <option value="desc">{MSG.ACCOUNT.SORT_DESC}</option>
+                            <option value="asc">{MSG.ACCOUNT.SORT_ASC}</option>
                         </select>
                         <button
                             onClick={() => refreshLinks(currentPage)}
                             className="rounded-2xl bg-blue-500 px-4 py-3 text-white shadow-md shadow-blue-500/10 transition hover:bg-blue-600"
                         >
-                            Làm mới
+                            {MSG.ACCOUNT.BTN_REFRESH}
                         </button>
                     </div>
                 </div>
@@ -404,13 +405,13 @@ const AccountDetailPage = () => {
                         <table className="min-w-full divide-y divide-slate-200 text-left text-sm text-slate-700">
                             <thead className="bg-slate-100 text-slate-900">
                                 <tr>
-                                    <th className="px-4 py-3">Tên trang web</th>
-                                    <th className="px-4 py-3">Link rút gọn</th>
-                                    <th className="px-4 py-3">Bảo mật</th>
-                                    <th className="px-4 py-3">Lượt click</th>
-                                    <th className="px-4 py-3">Trạng thái</th>
-                                    <th className="px-4 py-3">Hết hạn</th>
-                                    <th className="px-4 py-3">Hành động</th>
+                                    <th className="px-4 py-3">{MSG.ACCOUNT.COL_SITE_NAME}</th>
+                                    <th className="px-4 py-3">{MSG.ACCOUNT.COL_SHORT_LINK}</th>
+                                    <th className="px-4 py-3">{MSG.ACCOUNT.COL_SECURITY}</th>
+                                    <th className="px-4 py-3">{MSG.ACCOUNT.COL_CLICKS}</th>
+                                    <th className="px-4 py-3">{MSG.ACCOUNT.COL_STATUS}</th>
+                                    <th className="px-4 py-3">{MSG.ACCOUNT.COL_EXPIRES}</th>
+                                    <th className="px-4 py-3">{MSG.ACCOUNT.COL_ACTION}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 bg-white">
@@ -419,18 +420,18 @@ const AccountDetailPage = () => {
                                         <tr className="hover:bg-slate-50">
                                             <td className="px-4 py-3">
                                                 <span title={link.originalUrl} className="cursor-help underline decoration-dotted">
-                                                    {link.siteName ?? 'Không rõ'}
+                                                    {link.siteName ?? MSG.ACCOUNT.SITE_UNKNOWN}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3">{clientUrl}/s/{link.shortUrl}</td>
                                             <td className="px-4 py-3">
                                                 <span className={link.passwordProtected ? 'inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-orange-700' : 'inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700'}>
-                                                    {link.passwordProtected ? 'Có' : 'Không'}
+                                                    {link.passwordProtected ? MSG.ACCOUNT.SECURE_YES : MSG.ACCOUNT.SECURE_NO}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3">{link.clicks ?? 0}</td>
                                             <td className="px-4 py-3">{getLinkStatus(link)}</td>
-                                            <td className="px-4 py-3">{link.expiresAt ? new Date(link.expiresAt).toLocaleString() : 'Không có'}</td>
+                                            <td className="px-4 py-3">{link.expiresAt ? new Date(link.expiresAt).toLocaleString() : MSG.ACCOUNT.NO_EXPIRE}</td>
                                             <td className="px-4 py-3 space-y-2 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-2">
                                                 <button
                                                     onClick={() => toggleLinkStatus(link)}
@@ -441,14 +442,14 @@ const AccountDetailPage = () => {
                                                             ? 'bg-emerald-500 text-white hover:bg-emerald-600'
                                                             : 'bg-orange-500 text-white hover:bg-orange-600'}`}
                                                 >
-                                                    {link.status === 'disabled' ? 'Bật' : 'Tắt'}
+                                                    {link.status === 'disabled' ? MSG.ACCOUNT.BTN_ENABLE : MSG.ACCOUNT.BTN_DISABLE}
                                                 </button>
                                                 <button
                                                     onClick={() => setActiveQrLinkId(activeQrLinkId === (link._id || link.id) ? '' : (link._id || link.id))}
                                                     disabled={isLinkExpired(link) || link.status === 'disabled'}
                                                     className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 hover:bg-slate-200 transition disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
                                                 >
-                                                    {activeQrLinkId === (link._id || link.id) ? 'Ẩn QR' : 'QR'}
+                                                    {activeQrLinkId === (link._id || link.id) ? MSG.ACCOUNT.BTN_HIDE_QR : MSG.ACCOUNT.BTN_QR}
                                                 </button>
                                                 <button
                                                     onClick={() => {
@@ -464,13 +465,13 @@ const AccountDetailPage = () => {
                                                     }}
                                                     className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 hover:bg-slate-200 transition"
                                                 >
-                                                    {editingPasswordLinkId === (link._id || link.id) ? 'Hủy mật khẩu' : 'Đổi mật khẩu'}
+                                                    {editingPasswordLinkId === (link._id || link.id) ? MSG.ACCOUNT.BTN_CANCEL_PASSWORD : MSG.ACCOUNT.BTN_CHANGE_PASSWORD}
                                                 </button>
                                                 <button
                                                     onClick={() => deleteLink(link._id || link.id)}
                                                     className="rounded-full bg-red-500 px-3 py-1 text-sm text-white hover:bg-red-600 transition"
                                                 >
-                                                    Xóa
+                                                    {MSG.ACCOUNT.BTN_DELETE_LINK}
                                                 </button>
                                                 {editingPasswordLinkId === (link._id || link.id) && (
                                                     <div className="flex w-full flex-col gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-3">
@@ -478,43 +479,43 @@ const AccountDetailPage = () => {
                                                             type="password"
                                                             value={newLinkPassword}
                                                             onChange={(e) => setNewLinkPassword(e.target.value)}
-                                                            placeholder="Mật khẩu mới"
+                                                            placeholder={MSG.ACCOUNT.NEW_PASSWORD_PLACEHOLDER}
                                                             className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
                                                         />
                                                         <input
                                                             type="password"
                                                             value={confirmNewLinkPassword}
                                                             onChange={(e) => setConfirmNewLinkPassword(e.target.value)}
-                                                            placeholder="Xác nhận mật khẩu"
+                                                            placeholder={MSG.ACCOUNT.CONFIRM_PASSWORD_PLACEHOLDER}
                                                             className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
                                                         />
                                                         <button
                                                             type="button"
                                                             onClick={() => {
                                                                 if (!newLinkPassword.trim() || !confirmNewLinkPassword.trim()) {
-                                                                    toast.error('Vui lòng nhập mật khẩu và xác nhận mật khẩu');
+                                                                    toast.error(MSG.ACCOUNT.ERROR_ENTER_PASSWORD_AND_CONFIRM);
                                                                     return;
                                                                 }
                                                                 if (newLinkPassword !== confirmNewLinkPassword) {
-                                                                    toast.error('Mật khẩu và xác nhận mật khẩu không khớp');
+                                                                    toast.error(MSG.ACCOUNT.ERROR_PASSWORDS_DO_NOT_MATCH);
                                                                     return;
                                                                 }
                                                                 patch(`shortener/${link._id || link.id}`, { password: newLinkPassword })
                                                                     .then(() => {
-                                                                        toast.success('Cập nhật mật khẩu liên kết thành công');
+                                                                        toast.success(MSG.ACCOUNT.SUCCESS_PASSWORD_UPDATED);
                                                                         setEditingPasswordLinkId('');
                                                                         setNewLinkPassword('');
                                                                         setConfirmNewLinkPassword('');
                                                                         refreshLinks(currentPage);
                                                                     })
                                                                     .catch((error) => {
-                                                                        const message = error.response?.data?.message || 'Không thể cập nhật mật khẩu liên kết';
+                                                                        const message = error.response?.data?.message || MSG.ACCOUNT.ERROR_PASSWORD_UPDATE_FAILED;
                                                                         toast.error(message);
                                                                     });
                                                             }}
                                                             className="rounded-2xl bg-blue-500 px-3 py-2 text-white text-sm hover:bg-blue-600 transition"
                                                         >
-                                                            Lưu mật khẩu
+                                                            {MSG.ACCOUNT.BTN_SAVE_PASSWORD}
                                                         </button>
                                                     </div>
                                                 )}
@@ -533,7 +534,7 @@ const AccountDetailPage = () => {
                         </table>
                     </div>
                 ) : (
-                    <p className="text-center text-slate-500 py-8">Chưa có liên kết nào cho tài khoản này</p>
+                    <p className="text-center text-slate-500 py-8">{MSG.ACCOUNT.NO_LINKS}</p>
                 )}
 
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -546,7 +547,7 @@ const AccountDetailPage = () => {
                         disabled={currentPage === 1}
                         className="rounded-2xl bg-slate-200 px-4 py-3 text-slate-700 disabled:opacity-50"
                     >
-                        Trước
+                        {MSG.ACCOUNT.PAGE_PREV}
                     </button>
                     <div className="text-sm text-slate-700">Trang {currentPage} / {totalPages}</div>
                     <button
@@ -558,7 +559,7 @@ const AccountDetailPage = () => {
                         disabled={currentPage === totalPages}
                         className="rounded-2xl bg-slate-200 px-4 py-3 text-slate-700 disabled:opacity-50"
                     >
-                        Sau
+                        {MSG.ACCOUNT.PAGE_NEXT}
                     </button>
                 </div>
             </div>

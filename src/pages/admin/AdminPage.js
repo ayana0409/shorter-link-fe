@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { get } from '../../utils/request';
 import toast from 'react-hot-toast';
 import { getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
+import { MSG } from '../../constants/messages';
 import PageWrapper from '../../components/PageWrapper';
 
 const LineChart = ({ data }) => {
     if (!data || data.length === 0) {
-        return <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-500">Chưa có dữ liệu biểu đồ</div>;
+        return <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-500">{MSG.ADMIN.DASHBOARD.CHART_NO_DATA}</div>;
     }
 
     const width = 640;
@@ -98,7 +99,7 @@ const AdminPage = () => {
                 setAnalyticsData(formattedData);
             })
             .catch((error) => {
-                const message = error.response?.data?.message || 'Không thể tải dữ liệu biểu đồ';
+                const message = error.response?.data?.error?.message || MSG.ADMIN.DASHBOARD.ERR_LOAD_CHART;
                 toast.error(message);
             });
     };
@@ -125,22 +126,22 @@ const AdminPage = () => {
 
     return (
         <PageWrapper
-            title="Bảng điều khiển admin"
-            subtitle="Theo dõi biểu đồ tăng trưởng liên kết của hệ thống"
+            title={MSG.ADMIN.DASHBOARD.PAGE_TITLE}
+            subtitle={MSG.ADMIN.DASHBOARD.PAGE_SUBTITLE}
         >
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
                 <div className="mb-6">
                     <div>
-                        <h2 className="text-2xl font-semibold text-slate-900">Biểu đồ tăng trưởng</h2>
-                        <p className="mt-2 text-sm text-slate-600">Xem số lượng liên kết được tạo theo thời gian trong hệ thống.</p>
+                        <h2 className="text-2xl font-semibold text-slate-900">{MSG.ADMIN.DASHBOARD.TITLE}</h2>
+                        <p className="mt-2 text-sm text-slate-600">{MSG.ADMIN.DASHBOARD.DESC}</p>
                     </div>
                 </div>
 
                 <div className="mb-6 rounded-3xl border border-slate-200 bg-slate-50 p-6">
                     <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                         <div>
-                            <h3 className="text-xl font-semibold text-slate-900">Lọc biểu đồ</h3>
-                            <p className="text-sm text-slate-600">Chọn phạm vi và thời gian để cập nhật biểu đồ.</p>
+                            <h3 className="text-xl font-semibold text-slate-900">{MSG.ADMIN.DASHBOARD.FILTER_TITLE}</h3>
+                            <p className="text-sm text-slate-600">{MSG.ADMIN.DASHBOARD.FILTER_DESC}</p>
                         </div>
                         <div className="flex flex-wrap items-center gap-3">
                             <select
@@ -148,9 +149,9 @@ const AdminPage = () => {
                                 onChange={(e) => setAnalyticsRange(e.target.value)}
                                 className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                             >
-                                <option value="daily">Ngày</option>
-                                <option value="weekly">Tuần</option>
-                                <option value="monthly">Tháng</option>
+                                <option value="daily">{MSG.ADMIN.DASHBOARD.FILTER_DAILY}</option>
+                                <option value="weekly">{MSG.ADMIN.DASHBOARD.FILTER_WEEKLY}</option>
+                                <option value="monthly">{MSG.ADMIN.DASHBOARD.FILTER_MONTHLY}</option>
                             </select>
                             <input
                                 type="date"

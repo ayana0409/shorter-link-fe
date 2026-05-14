@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { get, post, patch } from '../../utils/request';
 import toast from 'react-hot-toast';
 import { getTokenPayload, getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
+import { MSG } from '../../constants/messages';
 import PageWrapper from '../../components/PageWrapper';
 
 const AccountManagementPage = () => {
@@ -56,7 +57,7 @@ const AccountManagementPage = () => {
                 setTotalPages(totalPagesFromResponse);
             })
             .catch((error) => {
-                const message = error.response?.data?.error?.message || 'Không thể tải danh sách tài khoản';
+                const message = error.response?.data?.error?.message || MSG.ACCOUNT.ERR_LOAD;
                 toast.error(message);
             });
     };
@@ -80,19 +81,19 @@ const AccountManagementPage = () => {
         }
 
         if (!newAccount.username.trim() || !newAccount.fullname.trim() || !newAccount.password.trim()) {
-            toast.error('Vui lòng điền đầy đủ username, fullname và password');
+            toast.error(MSG.ACCOUNT.ERR_CREATE_EMPTY);
             return;
         }
 
         setIsCreating(true);
         post('account', newAccount)
             .then(() => {
-                toast.success('Tạo tài khoản thành công');
+                toast.success(MSG.ACCOUNT.SUCCESS_CREATE);
                 setNewAccount({ username: '', fullname: '', password: '', role: 'user' });
                 loadAccounts(1);
             })
             .catch((error) => {
-                const message = error.response?.data?.message || 'Không thể tạo tài khoản';
+                const message = error.response?.data?.error?.message || MSG.ACCOUNT.ERR_CREATE;
                 toast.error(message);
             })
             .finally(() => {
@@ -110,13 +111,11 @@ const AccountManagementPage = () => {
             levelExpirationDate,
         })
             .then(() => {
-                toast.success('Cập nhật level thành công');
+                toast.success(MSG.ACCOUNT.SUCCESS_UPDATE_LEVEL);
                 loadAccounts(currentPage);
             })
             .catch((error) => {
-                const message =
-                    error.response?.data?.message ||
-                    'Không thể cập nhật level';
+                const message = error.response?.data?.error?.message || MSG.ACCOUNT.ERR_UPDATE_LEVEL;
                 toast.error(message);
             })
             .finally(() => {
@@ -127,7 +126,7 @@ const AccountManagementPage = () => {
     const toggleAccountStatus = (account) => {
         const currentUser = getTokenPayload();
         if (currentUser?._id === account._id || currentUser?.username === account.username) {
-            toast.error('Không thể khóa tài khoản đang đăng nhập');
+            toast.error(MSG.ACCOUNT.ERR_SELF_LOCK);
             return;
         }
 
@@ -136,11 +135,11 @@ const AccountManagementPage = () => {
         setStatusUpdatingId(accountId);
         patch(`account/${accountId}/active`, { isActive: nextStatus })
             .then(() => {
-                toast.success(`Tài khoản ${nextStatus ? 'đã được mở khóa' : 'đã bị khóa'}`);
+                toast.success(MSG.ACCOUNT.TOGGLE_UNLOCKED(nextStatus));
                 loadAccounts(currentPage);
             })
             .catch((error) => {
-                const message = error.response?.data?.message || 'Không thể thay đổi trạng thái tài khoản';
+                const message = error.response?.data?.error?.message || MSG.ACCOUNT.ERR_TOGGLE_STATUS;
                 toast.error(message);
             })
             .finally(() => {
@@ -162,29 +161,29 @@ const AccountManagementPage = () => {
 
     return (
         <PageWrapper
-            title="Quản lý tài khoản"
-            subtitle="Tạo, tìm kiếm và quản lý tài khoản người dùng"
+            title={MSG.ACCOUNT.PAGE_TITLE}
+            subtitle={MSG.ACCOUNT.PAGE_SUBTITLE}
         >
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
                 <div className="mb-6">
                     <div>
-                        <h2 className="text-2xl font-semibold text-slate-900">Quản lý tài khoản</h2>
-                        <p className="mt-2 text-sm text-slate-600">Tạo mới và quản lý trạng thái tài khoản trong hệ thống.</p>
+                        <h2 className="text-2xl font-semibold text-slate-900">{MSG.ACCOUNT.TITLE}</h2>
+                        <p className="mt-2 text-sm text-slate-600">{MSG.ACCOUNT.DESC}</p>
                     </div>
                 </div>
 
                 <div className="mb-6 rounded-3xl border border-slate-200 bg-slate-50 p-6">
                     <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                         <div>
-                            <h3 className="text-xl font-semibold text-slate-900">Tạo tài khoản mới</h3>
-                            <p className="text-sm text-slate-600">Thêm tài khoản mới cho hệ thống.</p>
+                            <h3 className="text-xl font-semibold text-slate-900">{MSG.ACCOUNT.CREATE_TITLE}</h3>
+                            <p className="text-sm text-slate-600">{MSG.ACCOUNT.CREATE_DESC}</p>
                         </div>
                         <button
                             onClick={createAccount}
                             disabled={isCreating}
                             className={`rounded-2xl px-4 py-3 text-white shadow-md transition ${isCreating ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}
                         >
-                            {isCreating ? 'Đang tạo...' : 'Tạo tài khoản'}
+                            {isCreating ? MSG.ACCOUNT.BTN_CREATING : MSG.ACCOUNT.BTN_CREATE}
                         </button>
                     </div>
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -192,21 +191,21 @@ const AccountManagementPage = () => {
                             type="text"
                             value={newAccount.username}
                             onChange={(e) => setNewAccount({ ...newAccount, username: e.target.value })}
-                            placeholder="Username"
+                            placeholder={MSG.ACCOUNT.PLACEHOLDER_USERNAME}
                             className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                         <input
                             type="text"
                             value={newAccount.fullname}
                             onChange={(e) => setNewAccount({ ...newAccount, fullname: e.target.value })}
-                            placeholder="Fullname"
+                            placeholder={MSG.ACCOUNT.PLACEHOLDER_FULLNAME}
                             className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                         <input
                             type="password"
                             value={newAccount.password}
                             onChange={(e) => setNewAccount({ ...newAccount, password: e.target.value })}
-                            placeholder="Password"
+                            placeholder={MSG.ACCOUNT.PLACEHOLDER_PASSWORD}
                             className="rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                         <select
@@ -233,7 +232,7 @@ const AccountManagementPage = () => {
                                 setCurrentPage(1);
                                 loadAccounts(1, nextSearch, sortBy, sortOrder);
                             }}
-                            placeholder="Tìm kiếm username hoặc fullname"
+                            placeholder={MSG.ACCOUNT.SEARCH_PLACEHOLDER}
                             className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         />
                     </div>
@@ -248,9 +247,9 @@ const AccountManagementPage = () => {
                             }}
                             className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         >
-                            <option value="createdAt">Mới nhất</option>
-                            <option value="username">Username</option>
-                            <option value="fullname">Fullname</option>
+                            <option value="createdAt">{MSG.ACCOUNT.SORT_NEWEST}</option>
+                            <option value="username">{MSG.ACCOUNT.SORT_USERNAME}</option>
+                            <option value="fullname">{MSG.ACCOUNT.SORT_FULLNAME}</option>
                         </select>
                         <select
                             value={sortOrder}
@@ -262,14 +261,14 @@ const AccountManagementPage = () => {
                             }}
                             className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                         >
-                            <option value="desc">Giảm dần</option>
-                            <option value="asc">Tăng dần</option>
+                            <option value="desc">{MSG.ACCOUNT.SORT_DESC}</option>
+                            <option value="asc">{MSG.ACCOUNT.SORT_ASC}</option>
                         </select>
                         <button
                             onClick={() => loadAccounts(currentPage)}
                             className="rounded-2xl bg-blue-500 px-4 py-3 text-white shadow-md shadow-blue-500/10 transition hover:bg-blue-600"
                         >
-                            Làm mới
+                            {MSG.ACCOUNT.BTN_REFRESH}
                         </button>
                     </div>
                 </div>
@@ -278,12 +277,12 @@ const AccountManagementPage = () => {
                     <table className="min-w-full divide-y divide-slate-200 text-sm text-slate-700">
                         <thead className="bg-slate-100 text-slate-900">
                             <tr>
-                                <th className="px-4 py-3 text-left">Username</th>
-                                <th className="px-4 py-3 text-left">Fullname</th>
-                                <th className="px-4 py-3 text-left">Role</th>
-                                <th className="px-4 py-3 text-left">Level</th>
-                                <th className="px-4 py-3 text-left">Trạng thái</th>
-                                <th className="px-4 py-3 text-left">Hành động</th>
+                                <th className="px-4 py-3 text-left">{MSG.ACCOUNT.COL_USERNAME}</th>
+                                <th className="px-4 py-3 text-left">{MSG.ACCOUNT.COL_FULLNAME}</th>
+                                <th className="px-4 py-3 text-left">{MSG.ACCOUNT.COL_ROLE}</th>
+                                <th className="px-4 py-3 text-left">{MSG.ACCOUNT.COL_LEVEL}</th>
+                                <th className="px-4 py-3 text-left">{MSG.ACCOUNT.COL_STATUS}</th>
+                                <th className="px-4 py-3 text-left">{MSG.ACCOUNT.COL_ACTION}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 bg-white">
@@ -292,11 +291,11 @@ const AccountManagementPage = () => {
                                     <td className="px-4 py-3">{account.username}</td>
                                     <td className="px-4 py-3">{account.fullname}</td>
                                     <td className="px-4 py-3">{account.role}</td>
-                                    <td className="px-4 py-3">{account.level ? account.level.name : 'Free'}</td>
+                                    <td className="px-4 py-3">{account.level ? account.level.name : MSG.ACCOUNT.LEVEL_FREE}</td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-3">
                                             <span className={account.isActive ? 'inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700' : 'inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700'}>
-                                                {account.isActive ? 'Hoạt động' : 'Đã khóa'}
+                                                {account.isActive ? MSG.ACCOUNT.STATUS_ACTIVE : MSG.ACCOUNT.STATUS_LOCKED}
                                             </span>
                                             <label className="relative inline-flex cursor-pointer items-center">
                                                 <input
@@ -321,13 +320,13 @@ const AccountManagementPage = () => {
                                                 }}
                                                 className="inline-flex rounded-full bg-orange-500 px-3 py-1 text-sm text-white transition hover:bg-orange-600"
                                             >
-                                                Nạp VIP
+                                                {MSG.ACCOUNT.BTN_VIP}
                                             </button>
                                             <Link
                                                 to={`/admin/${account._id || account.id}`}
                                                 className="inline-flex rounded-full bg-blue-500 px-3 py-1 text-sm text-white transition hover:bg-blue-600"
                                             >
-                                                Xem chi tiết
+                                                {MSG.ACCOUNT.BTN_VIEW_DETAIL}
                                             </Link>
                                         </div>
                                     </td>
@@ -347,9 +346,9 @@ const AccountManagementPage = () => {
                         disabled={currentPage === 1}
                         className="rounded-2xl bg-slate-200 px-4 py-3 text-slate-700 disabled:opacity-50"
                     >
-                        Trước
+                        {MSG.ACCOUNT.BTN_PREV}
                     </button>
-                    <div className="text-sm text-slate-700">Trang {currentPage} / {totalPages}</div>
+                    <div className="text-sm text-slate-700">{MSG.ACCOUNT.PAGE_INFO(currentPage, totalPages)}</div>
                     <button
                         onClick={() => {
                             const nextPage = Math.min(currentPage + 1, totalPages);
@@ -359,7 +358,7 @@ const AccountManagementPage = () => {
                         disabled={currentPage === totalPages}
                         className="rounded-2xl bg-slate-200 px-4 py-3 text-slate-700 disabled:opacity-50"
                     >
-                        Sau
+                        {MSG.ACCOUNT.BTN_NEXT}
                     </button>
                 </div>
             </div>
@@ -368,17 +367,17 @@ const AccountManagementPage = () => {
             {selectedAccountForLevel && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
                     <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
-                        <h3 className="mb-4 text-lg font-semibold">Cập nhật Level cho {selectedAccountForLevel.username}</h3>
+                        <h3 className="mb-4 text-lg font-semibold">{MSG.ACCOUNT.MODAL_TITLE(selectedAccountForLevel.username)}</h3>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-slate-700">Level</label>
+                                <label className="block text-sm font-medium text-slate-700">{MSG.ACCOUNT.LABEL_LEVEL}</label>
                                 <select
                                     value={selectedLevelId}
                                     onChange={(e) => setSelectedLevelId(e.target.value)}
                                     className="mt-1 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                 >
                                     <option key={'free'} value={''}>
-                                        Free - $0
+                                        {MSG.ACCOUNT.LEVEL_OPTION_FREE}
                                     </option>
                                     {levels.map((level) => (
                                         <option key={level._id} value={level._id}>
@@ -388,7 +387,7 @@ const AccountManagementPage = () => {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700">Ngày hết hạn</label>
+                                <label className="block text-sm font-medium text-slate-700">{MSG.ACCOUNT.LABEL_EXPIRATION}</label>
                                 <input
                                     type="datetime-local"
                                     value={levelExpirationDate}
@@ -410,7 +409,7 @@ const AccountManagementPage = () => {
                                 disabled={levelUpdatingId === selectedAccountForLevel._id}
                                 className="flex-1 rounded-2xl bg-blue-500 px-4 py-3 text-white transition hover:bg-blue-600 disabled:opacity-50"
                             >
-                                {levelUpdatingId === selectedAccountForLevel._id ? 'Đang cập nhật...' : 'Cập nhật'}
+                                {levelUpdatingId === selectedAccountForLevel._id ? MSG.ACCOUNT.BTN_UPDATING : MSG.ACCOUNT.BTN_UPDATE}
                             </button>
                             <button
                                 onClick={() => {
@@ -420,7 +419,7 @@ const AccountManagementPage = () => {
                                 }}
                                 className="flex-1 rounded-2xl bg-slate-200 px-4 py-3 text-slate-700 transition hover:bg-slate-300"
                             >
-                                Hủy
+                                {MSG.ACCOUNT.BTN_CANCEL}
                             </button>
                         </div>
                     </div>

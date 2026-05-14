@@ -4,6 +4,7 @@ import { get, post, put, remove } from "../../utils/request";
 import PageWrapper from "../../components/PageWrapper";
 import toast from "react-hot-toast";
 import { getTokenPayload } from "../../constants/localStorage";
+import { MSG } from "../../constants/messages";
 
 const GroupsPage = () => {
     const [groups, setGroups] = useState([]);
@@ -27,7 +28,7 @@ const GroupsPage = () => {
             const data = await get("groups");
             setGroups(data);
         } catch (error) {
-            toast.error("Không thể tải danh sách nhóm. Vui lòng thử lại sau.");
+            toast.error(MSG.GROUP.ERR_LOAD_LIST);
         } finally {
             setLoading(false);
         }
@@ -42,7 +43,7 @@ const GroupsPage = () => {
 
     const handleCreateGroup = async () => {
         if (!groupName.trim()) {
-            toast.error("Vui lòng nhập tên nhóm.");
+            toast.error(MSG.GROUP.ERR_EMPTY_NAME);
             return;
         }
 
@@ -51,9 +52,9 @@ const GroupsPage = () => {
             const newGroup = await post("groups", { name: groupName.trim() });
             setGroups((prev) => [newGroup, ...prev]);
             setGroupName("");
-            toast.success("Tạo nhóm thành công.");
+            toast.success(MSG.GROUP.SUCCESS_CREATE);
         } catch (error) {
-            const message = error.response?.data?.message || "Tạo nhóm thất bại. Vui lòng thử lại.";
+            const message = error.response?.data?.error?.message || MSG.GROUP.ERR_CREATE;
             toast.error(message);
         } finally {
             setActionLoading(false);
@@ -83,17 +84,17 @@ const GroupsPage = () => {
 
     const handleSaveRename = async (groupId) => {
         if (!renameGroupName.trim()) {
-            toast.error("Tên nhóm không được để trống.");
+            toast.error(MSG.GROUP.ERR_RENAME_EMPTY);
             return;
         }
         setRenameLoading(true);
         try {
             const updatedGroup = await put(`groups/${groupId}`, { name: renameGroupName.trim() });
             setGroups((prev) => prev.map((group) => (group._id === groupId ? updatedGroup : group)));
-            toast.success("Đổi tên nhóm thành công.");
+            toast.success(MSG.GROUP.SUCCESS_RENAME);
             handleCancelRename();
         } catch (error) {
-            toast.error("Đổi tên nhóm thất bại. Vui lòng thử lại.");
+            toast.error(MSG.GROUP.ERR_RENAME);
         } finally {
             setRenameLoading(false);
         }
@@ -115,17 +116,17 @@ const GroupsPage = () => {
 
     const handleConfirmDelete = async () => {
         if (!deletePassword.trim()) {
-            toast.error("Vui lòng nhập mật khẩu để xác nhận.");
+            toast.error(MSG.GROUP.ERR_DELETE_PASSWORD);
             return;
         }
         setActionLoading(true);
         try {
             await remove(`groups/${deleteGroupId}`, { data: { password: deletePassword.trim() } });
             setGroups((prev) => prev.filter((group) => group._id !== deleteGroupId));
-            toast.success("Xóa nhóm thành công.");
+            toast.success(MSG.GROUP.SUCCESS_DELETE);
             handleCancelDelete();
         } catch (error) {
-            toast.error("Xóa nhóm thất bại. Kiểm tra mật khẩu và thử lại.");
+            toast.error(MSG.GROUP.ERR_DELETE);
         } finally {
             setActionLoading(false);
         }
@@ -133,15 +134,15 @@ const GroupsPage = () => {
 
     return (
         <PageWrapper
-            title="Quản lý nhóm"
-            subtitle="Tạo nhóm và mở trang thành viên hoặc liên kết cho từng nhóm."
+            title={MSG.GROUP.PAGE_TITLE}
+            subtitle={MSG.GROUP.PAGE_SUBTITLE}
             actions={
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <div className="flex w-full max-w-xs items-center gap-2 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-2 shadow-sm shadow-slate-200/50">
                         <input
                             value={groupName}
                             onChange={(event) => setGroupName(event.target.value)}
-                            placeholder="Tên nhóm mới"
+                            placeholder={MSG.GROUP.LABEL_NEW_GROUP}
                             disabled={limits.maxGroupsCount !== null && groups.length >= limits.maxGroupsCount}
                             className="w-full bg-transparent text-sm text-slate-900 outline-none disabled:cursor-not-allowed disabled:opacity-60"
                         />
@@ -152,7 +153,7 @@ const GroupsPage = () => {
                         disabled={actionLoading || (limits.maxGroupsCount !== null && groups.length >= limits.maxGroupsCount)}
                         className="inline-flex items-center justify-center rounded-3xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {limits.maxGroupsCount !== null && groups.length >= limits.maxGroupsCount ? 'Đã đạt giới hạn' : 'Tạo nhóm'}
+                        {limits.maxGroupsCount !== null && groups.length >= limits.maxGroupsCount ? MSG.GROUP.BTN_CREATE_LIMIT_REACHED : MSG.GROUP.BTN_CREATE}
                     </button>
                 </div>
             }
@@ -160,12 +161,12 @@ const GroupsPage = () => {
             {limits.maxGroupsCount !== null && (
                 <div className={`rounded-3xl border p-4 mb-4 ${groups.length >= limits.maxGroupsCount ? 'border-amber-300 bg-amber-50' : 'border-blue-200 bg-blue-50'}`}>
                     <div className="flex flex-wrap items-center gap-4 text-sm">
-                        <span className="font-semibold">Giới hạn của bạn:</span>
+                        <span className="font-semibold">{MSG.GROUP.LIMIT_LABEL}</span>
                         <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${groups.length >= limits.maxGroupsCount ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                            📁 {groups.length}/{limits.maxGroupsCount} nhóm
+                            📁 {MSG.GROUP.LIMIT_COUNT(groups.length, limits.maxGroupsCount)}
                         </span>
                         {groups.length >= limits.maxGroupsCount && (
-                            <span className="text-amber-700 font-medium">⚠️ Bạn đã đạt giới hạn nhóm tối đa.</span>
+                            <span className="text-amber-700 font-medium">{MSG.GROUP.LIMIT_WARNING}</span>
                         )}
                     </div>
                 </div>
@@ -174,8 +175,8 @@ const GroupsPage = () => {
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
                 <div className="mb-4 flex items-center justify-between gap-3">
                     <div>
-                        <h2 className="text-xl font-semibold text-slate-900">Danh sách nhóm</h2>
-                        <p className="mt-1 text-sm text-slate-600">Hiển thị thông tin nhóm, chủ nhóm, số liên kết và quản lý tên hoặc xóa nhóm.</p>
+                        <h2 className="text-xl font-semibold text-slate-900">{MSG.GROUP.LIST_TITLE}</h2>
+                        <p className="mt-1 text-sm text-slate-600">{MSG.GROUP.LIST_DESC}</p>
                     </div>
                 </div>
 
@@ -183,19 +184,19 @@ const GroupsPage = () => {
                     <table className="min-w-full text-left text-sm text-slate-700">
                         <thead>
                             <tr className="border-b border-slate-200 text-slate-900">
-                                <th className="px-3 py-3">Tên nhóm</th>
-                                <th className="px-3 py-3">Thành viên</th>
-                                <th className="px-3 py-3">Liên kết</th>
-                                <th className="px-3 py-3">Chủ nhóm</th>
-                                <th className="px-3 py-3">Ngày tạo</th>
-                                <th className="px-3 py-3">Hành động</th>
+                                <th className="px-3 py-3">{MSG.GROUP.COL_NAME}</th>
+                                <th className="px-3 py-3">{MSG.GROUP.COL_MEMBERS}</th>
+                                <th className="px-3 py-3">{MSG.GROUP.COL_LINKS}</th>
+                                <th className="px-3 py-3">{MSG.GROUP.COL_OWNER}</th>
+                                <th className="px-3 py-3">{MSG.GROUP.COL_DATE}</th>
+                                <th className="px-3 py-3">{MSG.GROUP.COL_ACTION}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {!groups.length && !loading ? (
                                 <tr>
                                     <td colSpan="6" className="px-3 py-6 text-center text-slate-500">
-                                        Chưa có nhóm nào.
+                                        {MSG.GROUP.NO_GROUPS}
                                     </td>
                                 </tr>
                             ) : (
@@ -215,14 +216,14 @@ const GroupsPage = () => {
                                                 disabled={renameLoading}
                                                 className="rounded-2xl bg-amber-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
                                             >
-                                                Lưu
+                                                {MSG.GROUP.BTN_SAVE}
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={handleCancelRename}
                                                 className="rounded-2xl bg-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
                                             >
-                                                Hủy
+                                                {MSG.GROUP.BTN_CANCEL}
                                             </button>
                                         </div>
                                     ) : (
@@ -243,14 +244,14 @@ const GroupsPage = () => {
                                                         onClick={() => navigate(`/groups/${group._id}/members`)}
                                                         className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
                                                     >
-                                                        Thành viên
+                                                        {MSG.GROUP.BTN_MEMBERS}
                                                     </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => navigate(`/groups/${group._id}/links`)}
                                                         className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
                                                     >
-                                                        Liên kết
+                                                        {MSG.GROUP.BTN_LINKS}
                                                     </button>
                                                     {creatorIsMe && renameGroupId !== group._id && (
                                                         <button
@@ -258,7 +259,7 @@ const GroupsPage = () => {
                                                             onClick={() => handleStartRename(group)}
                                                             className="rounded-2xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700"
                                                         >
-                                                            Đổi tên
+                                                            {MSG.GROUP.BTN_RENAME}
                                                         </button>
                                                     )}
                                                     {creatorIsMe && (
@@ -267,7 +268,7 @@ const GroupsPage = () => {
                                                             onClick={() => handleStartDelete(group)}
                                                             className="rounded-2xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-600"
                                                         >
-                                                            Xóa nhóm
+                                                            {MSG.GROUP.BTN_DELETE}
                                                         </button>
                                                     )}
                                                 </div>
@@ -284,17 +285,16 @@ const GroupsPage = () => {
             {showDeleteConfirm && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
                     <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl">
-                        <h3 className="text-lg font-semibold text-slate-900">Xác nhận xóa nhóm</h3>
+                        <h3 className="text-lg font-semibold text-slate-900">{MSG.GROUP.DELETE_CONFIRM_TITLE}</h3>
                         <p className="mt-2 text-sm text-slate-600">
-                            Bạn sắp xóa nhóm <strong>{deleteGroupName}</strong>. Hành động này không thể hoàn tác.
-                            Vui lòng nhập mật khẩu của chủ nhóm để xác nhận.
+                            {MSG.GROUP.DELETE_CONFIRM_DESC(deleteGroupName)}
                         </p>
                         <div className="mt-4 space-y-4">
                             <input
                                 type="password"
                                 value={deletePassword}
                                 onChange={(event) => setDeletePassword(event.target.value)}
-                                placeholder="Mật khẩu của bạn"
+                                placeholder={MSG.GROUP.DELETE_PASSWORD_PLACEHOLDER}
                                 className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                             />
                             <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
@@ -303,7 +303,7 @@ const GroupsPage = () => {
                                     onClick={handleCancelDelete}
                                     className="rounded-3xl bg-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
                                 >
-                                    Hủy
+                                    {MSG.GROUP.BTN_CANCEL}
                                 </button>
                                 <button
                                     type="button"
@@ -311,7 +311,7 @@ const GroupsPage = () => {
                                     disabled={actionLoading}
                                     className="rounded-3xl bg-rose-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
-                                    Xác nhận xóa
+                                    {MSG.GROUP.BTN_CONFIRM_DELETE}
                                 </button>
                             </div>
                         </div>

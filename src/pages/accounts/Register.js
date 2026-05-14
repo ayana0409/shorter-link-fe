@@ -3,6 +3,7 @@ import 'tailwindcss/tailwind.css';
 import toast from 'react-hot-toast';
 import request from '../../utils/request';
 import PageWrapper from '../../components/PageWrapper';
+import { MSG } from '../../constants/messages';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -25,33 +26,33 @@ const Register = () => {
         e.preventDefault();
 
         if (formData.password !== verifyPassword) {
-            toast.error('Passwords do not match');
+            toast.error(MSG.REGISTER.PASSWORD_MISMATCH);
             return;
         }
 
         request.post('/account/register', formData)
             .then((response) => {
-                toast.success('Account created successfully');
+                toast.success(MSG.REGISTER.SUCCESS);
                 setTimeout(() => {
                     window.location.href = '/login';
                 }, 1500);
             })
             .catch((error) => {
-                const message = error.response?.data?.error.message || 'An unexpected error occurred';
-                toast.error('An error occurred: ' + message);
+                const message = error.response?.data?.error?.message || error.response?.data?.message || MSG.COMMON.GENERIC_ERROR;
+                toast.error(message);
             });
     };
 
     return (
         <PageWrapper
-            title="Đăng ký"
-            subtitle="Tạo tài khoản để quản lý liên kết và truy cập dashboard"
+            title={MSG.REGISTER.TITLE}
+            subtitle={MSG.REGISTER.SUBTITLE}
         >
             <div className="mx-auto max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm shadow-slate-300/10">
-                <h2 className="text-3xl font-bold mb-6 text-center text-slate-900">Đăng ký</h2>
+                <h2 className="text-3xl font-bold mb-6 text-center text-slate-900">{MSG.REGISTER.FORM_TITLE}</h2>
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">Full Name</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.REGISTER.LABEL_FULL_NAME}</label>
                         <input
                             type="text"
                             name="fullname"
@@ -62,7 +63,7 @@ const Register = () => {
                         />
                     </div>
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">Username</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.REGISTER.LABEL_USERNAME}</label>
                         <input
                             type="text"
                             name="username"
@@ -73,7 +74,7 @@ const Register = () => {
                         />
                     </div>
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">Password</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.REGISTER.LABEL_PASSWORD}</label>
                         <input
                             type="password"
                             name="password"
@@ -84,7 +85,7 @@ const Register = () => {
                         />
                     </div>
                     <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">Verify Password</label>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.REGISTER.LABEL_VERIFY_PASSWORD}</label>
                         <input
                             type="password"
                             name="verifyPassword"
@@ -98,7 +99,7 @@ const Register = () => {
                         type="submit"
                         className="w-full rounded-2xl bg-blue-500 px-4 py-3 text-white shadow-md shadow-blue-500/10 transition hover:bg-blue-600"
                     >
-                        Register
+                        {MSG.REGISTER.BTN_SUBMIT}
                     </button>
                 </form>
             </div>
