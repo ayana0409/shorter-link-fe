@@ -233,6 +233,39 @@ const SystemHealthPage = () => {
                                 </span>
                             </div>
                         </div>
+
+                        {/* ── Cache Statistics ── */}
+                        {health.redis?.connected && health.redis?.cache && (
+                            <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                                <p className="text-xs font-medium uppercase tracking-wider text-blue-600">{MSG.ADMIN.HEALTH.CACHE_STATS_TITLE}</p>
+                                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                    <div className="rounded-xl bg-white p-3 border border-blue-100">
+                                        <p className="text-xs text-slate-500">{MSG.ADMIN.HEALTH.CACHE_TOTAL_KEYS}</p>
+                                        <p className="mt-1 text-lg font-bold text-slate-900">{health.redis.cache.totalKeys}</p>
+                                    </div>
+                                    <div className="rounded-xl bg-white p-3 border border-blue-100">
+                                        <p className="text-xs text-slate-500">{MSG.ADMIN.HEALTH.CACHE_MEMORY}</p>
+                                        <p className="mt-1 text-lg font-bold text-slate-900">{health.redis.cache.estimatedMemoryKB} KB</p>
+                                    </div>
+                                    <div className="rounded-xl bg-white p-3 border border-blue-100">
+                                        <p className="text-xs text-slate-500">{MSG.ADMIN.HEALTH.CACHE_SHORT_URL}</p>
+                                        <p className="mt-1 text-lg font-bold text-slate-900">{health.redis.cache.shortUrl.count}</p>
+                                    </div>
+                                    <div className="rounded-xl bg-white p-3 border border-blue-100">
+                                        <p className="text-xs text-slate-500">{MSG.ADMIN.HEALTH.CACHE_USER_PERM}</p>
+                                        <p className="mt-1 text-lg font-bold text-slate-900">{health.redis.cache.userPermissions.count}</p>
+                                    </div>
+                                    <div className="rounded-xl bg-white p-3 border border-blue-100">
+                                        <p className="text-xs text-slate-500">{MSG.ADMIN.HEALTH.CACHE_DAILY_COUNT}</p>
+                                        <p className="mt-1 text-lg font-bold text-slate-900">{health.redis.cache.dailyCount.count}</p>
+                                    </div>
+                                    <div className="rounded-xl bg-white p-3 border border-blue-100">
+                                        <p className="text-xs text-slate-500">{MSG.ADMIN.HEALTH.CACHE_CONFIG}</p>
+                                        <p className="mt-1 text-lg font-bold text-slate-900">{health.redis.cache.config.count}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             ) : (

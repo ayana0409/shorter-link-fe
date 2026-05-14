@@ -426,6 +426,13 @@ export const MSG = {
             REDIS_SECTION_DESC: "Trạng thái kết nối Redis và hàng đợi thông báo",
             QUEUE_EMPTY: "Hàng đợi trống",
             QUEUE_STATUS: "Trạng thái hàng đợi",
+            CACHE_STATS_TITLE: "Thống kê Cache",
+            CACHE_TOTAL_KEYS: "Tổng số key",
+            CACHE_MEMORY: "Bộ nhớ ước tính",
+            CACHE_SHORT_URL: "Short URL",
+            CACHE_USER_PERM: "User Permissions",
+            CACHE_DAILY_COUNT: "Daily Count",
+            CACHE_CONFIG: "Config",
         },
 
         // LevelManagementPage
