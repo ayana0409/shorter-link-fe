@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { get, patch, remove } from '../../utils/request';
 import toast from 'react-hot-toast';
 import { getTokenPayload, getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
@@ -330,6 +330,12 @@ const AccountDetailPage = () => {
                         >
                             {isDeleting ? MSG.ACCOUNT.BTN_DELETING : MSG.ACCOUNT.BTN_DELETE}
                         </button>
+                        <Link
+                            to={`/admin/${id}/groups`}
+                            className="rounded-2xl bg-slate-900 px-4 py-3 text-white shadow-md transition hover:bg-slate-800"
+                        >
+                            {MSG.ADMIN.ACCOUNT.BTN_VIEW_GROUPS}
+                        </Link>
                     </div>
                 </div>
 

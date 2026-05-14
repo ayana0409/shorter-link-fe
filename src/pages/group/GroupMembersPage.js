@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 import { getTokenPayload } from "../../constants/localStorage";
 import { MSG } from "../../constants/messages";
 
-const MembersList = React.memo(({ members, memberRoleInputs, setMemberRoleInputs, isOwner, groupRole, userId, ownerId, actionLoading, handleUpdateMemberRole, handleRemoveMember }) => {
+const MembersList = React.memo(({ members, memberRoleInputs, setMemberRoleInputs, isOwner, isAdmin, groupRole, userId, ownerId, actionLoading, handleUpdateMemberRole, handleRemoveMember }) => {
     return (
         <div className="space-y-3">
             {members.map((member) => {
@@ -15,7 +15,7 @@ const MembersList = React.memo(({ members, memberRoleInputs, setMemberRoleInputs
                 const accountId = account._id || account;
                 const isOwnerMember = accountId === ownerId;
                 const isCurrentUser = accountId === userId;
-                const canRemove = isOwner || (groupRole === "manager" && member.role === "member");
+                const canRemove = isOwner || isAdmin || (groupRole === "manager" && member.role === "member");
                 return (
                     <div key={accountId} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
                         <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
@@ -25,7 +25,7 @@ const MembersList = React.memo(({ members, memberRoleInputs, setMemberRoleInputs
                                 <p className="mt-1 text-sm text-slate-500">{MSG.GROUP.ROLE_LABEL(member.role || "member")}</p>
                             </div>
                             <div className="flex flex-col gap-2 sm:items-end">
-                                {isOwner && !isOwnerMember && (
+                                {(isOwner || isAdmin) && !isOwnerMember && (
                                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                                         <select
                                             value={memberRoleInputs[accountId] || member.role || "member"}
@@ -83,6 +83,7 @@ const GroupMembersPage = () => {
     const [totalPages, setTotalPages] = useState(1);
 
     const userId = useMemo(() => getTokenPayload()?._id, []);
+    const isAdmin = useMemo(() => getTokenPayload()?.role === "admin", []);
     const pageSize = 5;
 
     const fetchGroup = async () => {
@@ -205,15 +206,19 @@ const GroupMembersPage = () => {
             return "owner";
         }
 
+        if (isAdmin) {
+            return "admin";
+        }
+
         const member = group.members?.find((item) => {
             const accountId = item?.account?._id || item?.account;
             return accountId === userId;
         });
 
         return member?.role || null;
-    }, [group, userId]);
+    }, [group, userId, isAdmin]);
 
-    const canManageMembers = groupRole === "owner" || groupRole === "manager";
+    const canManageMembers = isAdmin || groupRole === "owner" || groupRole === "manager";
     const isOwner = groupRole === "owner";
     const ownerId = group?.owner?._id || group?.owner;
 
@@ -390,6 +395,7 @@ const GroupMembersPage = () => {
                                 memberRoleInputs={memberRoleInputs}
                                 setMemberRoleInputs={setMemberRoleInputs}
                                 isOwner={isOwner}
+                                isAdmin={isAdmin}
                                 groupRole={groupRole}
                                 userId={userId}
                                 ownerId={ownerId}

@@ -175,6 +175,7 @@ const GroupLinksPage = () => {
     const [maxLinksPerGroup, setMaxLinksPerGroup] = useState(null);
 
     const userId = useMemo(() => getTokenPayload()?._id, []);
+    const isAdmin = useMemo(() => getTokenPayload()?.role === "admin", []);
     const pageSize = 5;
 
     const fetchGroup = async () => {
@@ -316,15 +317,19 @@ const GroupLinksPage = () => {
             return "owner";
         }
 
+        if (isAdmin) {
+            return "admin";
+        }
+
         const member = group.members?.find((item) => {
             const accountId = item?.account?._id || item?.account;
             return accountId === userId;
         });
 
         return member?.role || null;
-    }, [group, userId]);
+    }, [group, userId, isAdmin]);
 
-    const canManageLinks = groupRole && groupRole !== "viewer";
+    const canManageLinks = isAdmin || (groupRole && groupRole !== "viewer");
 
     return (
         <PageWrapper
@@ -339,7 +344,7 @@ const GroupLinksPage = () => {
                     >
                         {MSG.GROUP.BTN_GROUP_LIST}
                     </button>
-                    {groupRole !== "viewer" && (
+                    {(groupRole !== "viewer" || isAdmin) && (
                         <Link
                             to={`/groups/${groupId}/members`}
                             className="inline-flex items-center justify-center rounded-3xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
