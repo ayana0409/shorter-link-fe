@@ -414,6 +414,18 @@ export const MSG = {
             UPTIME_HOUR: "giờ",
             UPTIME_MINUTE: "phút",
             UPTIME_SECOND: "giây",
+
+            // Redis
+            LABEL_REDIS: "Redis Cache",
+            REDIS_CONNECTED: "Đã kết nối",
+            REDIS_DISCONNECTED: "Mất kết nối",
+            LABEL_PENDING_NOTIFICATIONS: "Thông báo chờ",
+            PENDING_COUNT: (count) => `${count} thông báo`,
+            NO_PENDING: "Không có thông báo chờ",
+            REDIS_SECTION_TITLE: "Redis Cache & Notification Queue",
+            REDIS_SECTION_DESC: "Trạng thái kết nối Redis và hàng đợi thông báo",
+            QUEUE_EMPTY: "Hàng đợi trống",
+            QUEUE_STATUS: "Trạng thái hàng đợi",
         },
 
         // LevelManagementPage

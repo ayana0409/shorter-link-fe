@@ -161,6 +161,11 @@ const SystemHealthPage = () => {
                             value={new Date(health.timestamp).toLocaleTimeString('vi-VN')}
                             subValue={new Date(health.timestamp).toLocaleDateString('vi-VN')}
                         />
+                        <InfoCard
+                            label={MSG.ADMIN.HEALTH.LABEL_REDIS}
+                            value={health.redis?.connected ? MSG.ADMIN.HEALTH.REDIS_CONNECTED : MSG.ADMIN.HEALTH.REDIS_DISCONNECTED}
+                            subValue={health.redis?.connected ? MSG.ADMIN.HEALTH.PENDING_COUNT(health.redis.pendingNotifications) : MSG.ADMIN.HEALTH.REDIS_DISCONNECTED}
+                        />
                     </div>
 
                     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -189,6 +194,46 @@ const SystemHealthPage = () => {
                             </div>
                         </div>
                     </div>
+
+                    {/* ── Redis Cache & Notification Queue ── */}
+                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-sm font-semibold text-slate-900">{MSG.ADMIN.HEALTH.REDIS_SECTION_TITLE}</h3>
+                                <p className="mt-1 text-xs text-slate-500">{MSG.ADMIN.HEALTH.REDIS_SECTION_DESC}</p>
+                            </div>
+                            <StatusBadge status={health.redis?.connected ? 'connected' : 'disconnected'} />
+                        </div>
+                        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                                <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{MSG.ADMIN.HEALTH.LABEL_REDIS}</p>
+                                <p className="mt-2 text-lg font-bold text-slate-900">
+                                    {health.redis?.connected ? MSG.ADMIN.HEALTH.REDIS_CONNECTED : MSG.ADMIN.HEALTH.REDIS_DISCONNECTED}
+                                </p>
+                            </div>
+                            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                                <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{MSG.ADMIN.HEALTH.LABEL_PENDING_NOTIFICATIONS}</p>
+                                <p className="mt-2 text-lg font-bold text-slate-900">
+                                    {health.redis?.pendingNotifications > 0
+                                        ? MSG.ADMIN.HEALTH.PENDING_COUNT(health.redis.pendingNotifications)
+                                        : MSG.ADMIN.HEALTH.NO_PENDING}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{MSG.ADMIN.HEALTH.QUEUE_STATUS}</p>
+                            <div className="mt-2 flex items-center gap-2">
+                                <span className={`h-2.5 w-2.5 rounded-full ${health.redis?.connected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                <span className="text-sm text-slate-700">
+                                    {health.redis?.connected
+                                        ? (health.redis?.pendingNotifications > 0
+                                            ? MSG.ADMIN.HEALTH.PENDING_COUNT(health.redis.pendingNotifications)
+                                            : MSG.ADMIN.HEALTH.QUEUE_EMPTY)
+                                        : MSG.ADMIN.HEALTH.REDIS_DISCONNECTED}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             ) : (
                 <div className="flex flex-col items-center justify-center rounded-3xl border border-red-200 bg-red-50 p-12">
@@ -208,25 +253,3 @@ const SystemHealthPage = () => {
 };
 
 export default SystemHealthPage;
-//                             </div>
-//                         </div>
-//                     </div>
-//                 </div>
-//             ) : (
-//                 <div className="flex flex-col items-center justify-center rounded-3xl border border-red-200 bg-red-50 p-12">
-//                     <div className="text-4xl mb-3">⚠️</div>
-//                     <p className="text-lg font-medium text-red-700">Khong the ket noi den may chu</p>
-//                     <p className="mt-1 text-sm text-red-500">Vui long kiem tra ket noi hoac thu lai sau</p>
-//                     <button
-//                         onClick={fetchHealth}
-//                         className="mt-4 rounded-2xl bg-red-600 px-6 py-2 text-sm font-medium text-white transition hover:bg-red-700"
-//                     >
-//                         Thu lai
-//                     </button>
-//                 </div>
-//             )}
-//         </PageWrapper>
-//     );
-// };
-
-// export default SystemHealthPage;
