@@ -1,5 +1,5 @@
 import { io } from "socket.io-client";
-import { getTokenWithExpiry, getTokenPayload } from "../constants/localStorage";
+import { getTokenPayload } from "../constants/localStorage";
 
 const WS_URL = process.env.REACT_APP_WS_URL || "http://localhost:3002";
 
@@ -13,7 +13,6 @@ export const connectNotificationSocket = () => {
 
     isConnecting = true;
 
-    const token = getTokenWithExpiry();
     const payload = getTokenPayload();
     // sub = username, _id = ObjectId — send both so gateway can match either
     const userId = payload?._id || payload?.sub || payload?.userId || payload?.id;

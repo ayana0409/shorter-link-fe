@@ -222,16 +222,29 @@ const SystemHealthPage = () => {
                         </div>
                         <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
                             <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{MSG.ADMIN.HEALTH.QUEUE_STATUS}</p>
-                            <div className="mt-2 flex items-center gap-2">
-                                <span className={`h-2.5 w-2.5 rounded-full ${health.redis?.connected ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                                <span className="text-sm text-slate-700">
-                                    {health.redis?.connected
-                                        ? (health.redis?.pendingNotifications > 0
-                                            ? MSG.ADMIN.HEALTH.PENDING_COUNT(health.redis.pendingNotifications)
-                                            : MSG.ADMIN.HEALTH.QUEUE_EMPTY)
-                                        : MSG.ADMIN.HEALTH.REDIS_DISCONNECTED}
-                                </span>
-                            </div>
+                            {health.redis?.connected ? (
+                                <div className="mt-3 space-y-3">
+                                    <div className="flex items-center justify-between text-sm text-slate-700">
+                                        <span>{MSG.ADMIN.HEALTH.TOTAL_QUEUE_ITEMS || 'Tổng mục trong hàng đợi'}</span>
+                                        <span className="font-semibold">
+                                            {health.redis.queue?.total ?? health.redis.pendingNotifications}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm text-slate-700">
+                                        <span>{MSG.ADMIN.HEALTH.LIST_QUEUE_COUNT || 'Danh sách queue'}</span>
+                                        <span className="font-semibold">{health.redis.queue?.listCount ?? 0}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-sm text-slate-700">
+                                        <span>{MSG.ADMIN.HEALTH.DEDUP_QUEUE_COUNT || 'Queue dedup user offline'}</span>
+                                        <span className="font-semibold">{health.redis.queue?.dedupKeyCount ?? 0}</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="mt-2 flex items-center gap-2">
+                                    <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+                                    <span className="text-sm text-slate-700">{MSG.ADMIN.HEALTH.REDIS_DISCONNECTED}</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* ── Cache Statistics ── */}

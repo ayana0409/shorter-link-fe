@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { connectNotificationSocket, onNotification, isSocketConnected } from "../utils/notificationSocket";
 import { getTokenWithExpiry, getTokenPayload } from "../constants/localStorage";
 import { get, post } from "../utils/request";
@@ -12,58 +12,13 @@ const NotificationBell = () => {
     const dropdownRef = useRef(null);
     const bellRef = useRef(null);
     const isAuthenticated = Boolean(getTokenWithExpiry());
-    const userId = getTokenPayload()?.sub || getTokenPayload()?.userId || getTokenPayload()?.id;
+    const userId = getTokenPayload()?._id || getTokenPayload()?.sub || getTokenPayload()?.userId || getTokenPayload()?.id;
 
-    // Fetch pending notifications on mount (user was offline)
-    useEffect(() => {
-        if (!isAuthenticated || !userId) return;
-        fetchPending();
-    }, [isAuthenticated, userId]);
-
-    // Poll pending notifications every 30s
-    useEffect(() => {
-        if (!isAuthenticated || !userId) return;
-        const interval = setInterval(fetchPending, 30000);
-        return () => clearInterval(interval);
-    }, [isAuthenticated, userId]);
-
-    // Connect WebSocket on mount
-    useEffect(() => {
-        if (!isAuthenticated) return;
-        const socket = connectNotificationSocket();
-        setConnected(isSocketConnected());
-        const handleConnect = () => setConnected(true);
-        const handleDisconnect = () => setConnected(false);
-        socket.on("connect", handleConnect);
-        socket.on("disconnect", handleDisconnect);
-        return () => {
-            socket.off("connect", handleConnect);
-            socket.off("disconnect", handleDisconnect);
-        };
-    }, [isAuthenticated]);
-
-    // Listen for real-time notifications via WebSocket
-    useEffect(() => {
-        if (!isAuthenticated) return;
-        const unsubscribe = onNotification((event, data) => {
-            const newNotif = {
-                id: Date.now() + Math.random(),
-                event,
-                data,
-                timestamp: new Date(),
-                read: false,
-                fromSocket: true,
-            };
-            setNotifications((prev) => [newNotif, ...prev].slice(0, 50));
-            setUnreadCount((prev) => prev + 1);
-        });
-        return unsubscribe;
-    }, [isAuthenticated]);
-
-    const fetchPending = async () => {
+    const fetchPending = useCallback(async () => {
+        if (!userId) return;
         try {
             const res = await get(`notifications/pending?userId=${userId}`);
-            if (res && res.length > 0) {
+            if (Array.isArray(res)) {
                 const pendingNotifs = res.map((n) => ({
                     id: n._id || n.id,
                     event: n.event,
@@ -77,12 +32,50 @@ const NotificationBell = () => {
                     const newOnes = pendingNotifs.filter((n) => !existingIds.has(n.id));
                     return [...newOnes, ...prev].slice(0, 50);
                 });
-                setUnreadCount((prev) => prev + pendingNotifs.length);
             }
         } catch {
             // ignore fetch errors
         }
-    };
+    }, [userId]);
+
+    // Fetch pending notifications on mount (user was offline)
+    useEffect(() => {
+        if (!isAuthenticated || !userId) return;
+        fetchPending();
+    }, [isAuthenticated, userId, fetchPending]);
+
+    // Connect WebSocket on mount, fetch pending on connect
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        const socket = connectNotificationSocket();
+        setConnected(isSocketConnected());
+        const handleConnect = () => {
+            setConnected(true);
+            fetchPending(); // Fetch pending notifications when WebSocket connects
+        };
+        const handleDisconnect = () => setConnected(false);
+        socket.on("connect", handleConnect);
+        socket.on("disconnect", handleDisconnect);
+        return () => {
+            socket.off("connect", handleConnect);
+            socket.off("disconnect", handleDisconnect);
+        };
+    }, [isAuthenticated, fetchPending]);
+
+    // Listen for ping from WebSocket — fetch pending notifications from DB
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        const unsubscribe = onNotification((event, data) => {
+            if (event === "new_notification") {
+                fetchPending();
+            }
+        });
+        return unsubscribe;
+    }, [isAuthenticated, userId, fetchPending]);
+
+    useEffect(() => {
+        setUnreadCount(notifications.filter((n) => !n.read).length);
+    }, [notifications]);
 
     const handleMarkAllRead = async () => {
         try {
