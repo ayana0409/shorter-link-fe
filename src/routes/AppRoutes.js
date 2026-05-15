@@ -9,7 +9,7 @@ import GroupMembersPage from "../pages/group/GroupMembersPage";
 import GroupLinksPage from "../pages/group/GroupLinksPage";
 import { RegisterPage } from "../pages/accounts";
 import { LoginPage } from "../pages/auth";
-import { AdminPage, AccountManagementPage, AccountDetailPage, AccountGroupsPage, AuditLogPage, SystemConfigPage, LevelManagementPage, SystemHealthPage } from "../pages/admin";
+import { AdminPage, AccountManagementPage, AccountDetailPage, AccountGroupsPage, AuditLogPage, SystemConfigPage, LevelManagementPage, SystemHealthPage, SendNotificationPage } from "../pages/admin";
 import RoleProtectedRoute from "../components/RoleProtectedRoute";
 
 const ProtectedRoute = ({ element }) => {
@@ -33,6 +33,7 @@ const AppRoutes = () => {
       <Route path="/admin/accounts" element={<RoleProtectedRoute element={<AccountManagementPage />} requiredRole={["admin", "manager"]} />} />
       <Route path="/admin/health" element={<RoleProtectedRoute element={<SystemHealthPage />} requiredRole="admin" />} />
       <Route path="/admin/audit" element={<RoleProtectedRoute element={<AuditLogPage />} requiredRole="admin" />} />
+      <Route path="/admin/notifications" element={<RoleProtectedRoute element={<SendNotificationPage />} requiredRole="admin" />} />
       <Route path="/admin/:id/groups" element={<RoleProtectedRoute element={<AccountGroupsPage />} requiredRole="admin" />} />
       <Route path="/admin/:id" element={<RoleProtectedRoute element={<AccountDetailPage />} requiredRole="admin" />} />
       <Route path="/register" element={<RegisterPage />} />

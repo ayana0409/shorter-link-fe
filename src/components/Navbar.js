@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getTokenRole, getTokenWithExpiry, removeToken } from '../constants/localStorage';
+import NotificationBell from './NotificationBell';
 
 const navItems = [
     { label: 'Home', to: '/home', roles: ['user', 'admin', 'manager'] },
@@ -21,6 +22,7 @@ const navItems = [
             { label: 'Trạng thái hệ thống', to: '/admin/health', roles: ['admin'] },
             { label: 'Nhật ký hoạt động', to: '/admin/audit', roles: ['admin'] },
             { label: 'Cấu hình hệ thống', to: '/admin/config', roles: ['admin'] },
+            { label: 'Gửi thông báo', to: '/admin/notifications', roles: ['admin'] },
         ]
     },
 ];
@@ -186,6 +188,7 @@ const Navbar = () => {
                 </div>
 
                 <div className="hidden items-center gap-3 sm:flex">
+                    <NotificationBell />
                     {loggedIn ? (
                         <button
                             type="button"
