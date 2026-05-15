@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { get } from '../../utils/request';
+import { get, post } from '../../utils/request';
 import toast from 'react-hot-toast';
 import { getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
 import PageWrapper from '../../components/PageWrapper';
@@ -47,6 +47,7 @@ const SystemHealthPage = () => {
     const [loading, setLoading] = useState(true);
     const [lastRefreshed, setLastRefreshed] = useState(null);
     const [rateLimited, setRateLimited] = useState(false);
+    const [flushingCache, setFlushingCache] = useState(false);
     const navigate = useNavigate();
 
     const fetchHealth = useCallback(() => {
@@ -69,6 +70,20 @@ const SystemHealthPage = () => {
             })
             .finally(() => setLoading(false));
     }, []);
+
+    const flushCache = useCallback(() => {
+        setFlushingCache(true);
+        post('admin/redis/flush')
+            .then(() => {
+                toast.success(MSG.ADMIN.HEALTH.CACHE_FLUSHED);
+                fetchHealth();
+            })
+            .catch((error) => {
+                const message = error.response?.data?.error?.message || MSG.ADMIN.HEALTH.ERR_FLUSH_CACHE;
+                toast.error(message);
+            })
+            .finally(() => setFlushingCache(false));
+    }, [fetchHealth]);
 
     useEffect(() => {
         const role = getTokenRole();
@@ -250,7 +265,16 @@ const SystemHealthPage = () => {
                         {/* ── Cache Statistics ── */}
                         {health.redis?.connected && health.redis?.cache && (
                             <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4">
-                                <p className="text-xs font-medium uppercase tracking-wider text-blue-600">{MSG.ADMIN.HEALTH.CACHE_STATS_TITLE}</p>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-xs font-medium uppercase tracking-wider text-blue-600">{MSG.ADMIN.HEALTH.CACHE_STATS_TITLE}</p>
+                                    <button
+                                        onClick={flushCache}
+                                        disabled={flushingCache}
+                                        className="rounded-lg bg-red-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
+                                    >
+                                        {flushingCache ? MSG.ADMIN.HEALTH.BTN_FLUSHING : MSG.ADMIN.HEALTH.BTN_FLUSH_CACHE}
+                                    </button>
+                                </div>
                                 <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                                     <div className="rounded-xl bg-white p-3 border border-blue-100">
                                         <p className="text-xs text-slate-500">{MSG.ADMIN.HEALTH.CACHE_TOTAL_KEYS}</p>

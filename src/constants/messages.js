@@ -433,6 +433,10 @@ export const MSG = {
             CACHE_USER_PERM: "User Permissions",
             CACHE_DAILY_COUNT: "Daily Count",
             CACHE_CONFIG: "Config",
+            CACHE_FLUSHED: "Cache đã được xóa thành công",
+            ERR_FLUSH_CACHE: "Không thể xóa cache",
+            BTN_FLUSH_CACHE: "Xóa Cache",
+            BTN_FLUSHING: "Đang xóa...",
         },
 
         // Notification
