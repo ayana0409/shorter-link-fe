@@ -156,6 +156,7 @@ const Navbar = () => {
                         })}
                     </nav>
                     <div className="mt-3 flex flex-col gap-2 sm:hidden px-4 pb-4">
+                        <NotificationBell />
                         {loggedIn ? (
                             <button
                                 type="button"

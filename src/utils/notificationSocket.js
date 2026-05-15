@@ -5,16 +5,22 @@ const WS_URL = process.env.REACT_APP_WS_URL || "http://localhost:3002";
 
 let socket = null;
 let listeners = [];
+let isConnecting = false;
 
 export const connectNotificationSocket = () => {
-    if (socket?.connected) return socket;
+    // Prevent duplicate connections (React Strict Mode, re-renders)
+    if (socket?.connected || isConnecting) return socket;
+
+    isConnecting = true;
 
     const token = getTokenWithExpiry();
     const payload = getTokenPayload();
-    const userId = payload?.sub || payload?.userId || payload?.id;
+    // sub = username, _id = ObjectId — send both so gateway can match either
+    const userId = payload?._id || payload?.sub || payload?.userId || payload?.id;
+    const username = payload?.sub || payload?.username;
 
     socket = io(`${WS_URL}/notifications`, {
-        query: { userId },
+        query: { userId, username },
         transports: ["websocket", "polling"],
         reconnection: true,
         reconnectionAttempts: Infinity,
@@ -23,10 +29,12 @@ export const connectNotificationSocket = () => {
     });
 
     socket.on("connect", () => {
+        isConnecting = false;
         console.log("[NotificationSocket] Connected");
     });
 
     socket.on("disconnect", (reason) => {
+        isConnecting = false;
         console.log("[NotificationSocket] Disconnected:", reason);
     });
 
