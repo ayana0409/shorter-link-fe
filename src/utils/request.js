@@ -251,6 +251,16 @@ request.interceptors.response.use(
             }
 
             if (status === 401) {
+                // Don't intercept auth endpoints — let the caller handle the error
+                const requestUrl = error.config?.url || "";
+                if (
+                    requestUrl.includes("/auth/login") ||
+                    requestUrl.includes("/auth/refresh") ||
+                    requestUrl.includes("/auth/logout")
+                ) {
+                    return Promise.reject(error);
+                }
+
                 const newToken = await refreshAccessToken();
 
                 if (newToken) {
