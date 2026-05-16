@@ -181,6 +181,11 @@ const SystemHealthPage = () => {
                             value={health.redis?.connected ? MSG.ADMIN.HEALTH.REDIS_CONNECTED : MSG.ADMIN.HEALTH.REDIS_DISCONNECTED}
                             subValue={health.redis?.connected ? MSG.ADMIN.HEALTH.PENDING_COUNT(health.redis.pendingNotifications) : MSG.ADMIN.HEALTH.REDIS_DISCONNECTED}
                         />
+                        <InfoCard
+                            label={MSG.ADMIN.HEALTH.LABEL_ACTIVE_SESSIONS || "Active Sessions"}
+                            value={health.activeSessions?.total ?? 0}
+                            subValue={MSG.ADMIN.HEALTH.ACTIVE_SESSIONS_SUB || "users online"}
+                        />
                     </div>
 
                     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -304,6 +309,47 @@ const SystemHealthPage = () => {
                             </div>
                         )}
                     </div>
+
+                    {/* ── Active Sessions ── */}
+                    {health.activeSessions && (
+                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-sm font-semibold text-slate-900">
+                                        {MSG.ADMIN.HEALTH.ACTIVE_SESSIONS_TITLE || "Phiên đăng nhập hoạt động"}
+                                    </h3>
+                                    <p className="mt-1 text-xs text-slate-500">
+                                        {MSG.ADMIN.HEALTH.ACTIVE_SESSIONS_DESC || "Danh sách user có session đang active trên hệ thống"}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                                        {health.activeSessions.total} online
+                                    </span>
+                                </div>
+                            </div>
+                            {health.activeSessions.users.length > 0 ? (
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    {health.activeSessions.users.map((username) => (
+                                        <span
+                                            key={username}
+                                            className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 border border-blue-200"
+                                        >
+                                            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                            </svg>
+                                            {username}
+                                        </span>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="mt-4 text-sm text-slate-500 italic">
+                                    {MSG.ADMIN.HEALTH.NO_ACTIVE_SESSIONS || "Không có session nào đang hoạt động"}
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div className="flex flex-col items-center justify-center rounded-3xl border border-red-200 bg-red-50 p-12">
