@@ -1,4 +1,3 @@
-
 export const setItemWithExpiry = (key, value, ttl) => {
     const now = new Date()
 
@@ -39,6 +38,28 @@ export const getTokenWithExpiry = () => {
     return item.value
 }
 
+/**
+ * Store refresh token (no expiry check — managed by Redis TTL on backend)
+ */
+export const setRefreshToken = (refreshToken) => {
+    localStorage.setItem('refresh_token', refreshToken)
+}
+
+/**
+ * Get the stored refresh token
+ */
+export const getRefreshToken = () => {
+    return localStorage.getItem('refresh_token')
+}
+
+/**
+ * Clear both access and refresh tokens
+ */
+export const removeToken = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('refresh_token')
+}
+
 export const getTokenPayload = () => {
     const token = getTokenWithExpiry()
     if (!token) {
@@ -59,27 +80,24 @@ export const getTokenPayload = () => {
     }
 }
 
+/**
+ * Decode a JWT and return the expiry timestamp (ms), or null if invalid
+ */
+export const decodeJWT = (token) => {
+    try {
+        const base64Url = token.split('.')[1]
+        if (!base64Url) return null
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+        const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=')
+        const payload = JSON.parse(atob(padded))
+        return payload.exp ? payload.exp * 1000 : null
+    } catch {
+        return null
+    }
+}
+
 export const getTokenRole = () => {
     const payload = getTokenPayload()
     return payload?.role || null
 }
 
-export const removeToken = () => {
-    localStorage.removeItem('token');
-}
-
-const decodeJWT = (token) => {
-    try {
-        const base64Url = token.split('.')[1]
-        if (!base64Url) {
-            return null
-        }
-
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-        const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=')
-        const payload = JSON.parse(atob(padded))
-        return payload.exp ? payload.exp * 1000 : null
-    } catch (error) {
-        return null
-    }
-}

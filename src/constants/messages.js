@@ -755,6 +755,7 @@ export const MSG = {
     COMMON: {
         GENERIC_ERROR: "Đã xảy ra lỗi không mong đợi",
         LOADING: "Đang tải...",
+        SESSION_EXPIRED: "Phiên của bạn đã hết hạn. Vui lòng đăng nhập lại.",
     },
 };
 

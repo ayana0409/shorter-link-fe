@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { post } from "../../utils/request";
 import toast from "react-hot-toast";
-import { setTokenWithExpiry, getTokenWithExpiry } from "../../constants/localStorage";
+import { setTokenWithExpiry, setRefreshToken, getTokenWithExpiry } from "../../constants/localStorage";
 import PageWrapper from "../../components/PageWrapper";
 import { MSG } from "../../constants/messages";
 
@@ -28,6 +28,9 @@ const Login = () => {
         post('/auth/login', user)
             .then(res => {
                 setTokenWithExpiry(res.access_token, res.expires_in * 1000);
+                if (res.refresh_token) {
+                    setRefreshToken(res.refresh_token);
+                }
                 toast.success(MSG.LOGIN.SUCCESS);
                 navigate(redirectTo, { replace: true });
             })
