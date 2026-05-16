@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { getTokenWithExpiry } from "../constants/localStorage";
+import { selectIsAuthenticated } from "../store/authSlice";
 import Navigator from "../pages/Navigator";
 import NotFountOrExpire from "../pages/NotFoundOrExpire";
 import AccountLocked from "../pages/AccountLocked";
@@ -13,8 +15,13 @@ import { AdminPage, AccountManagementPage, AccountDetailPage, AccountGroupsPage,
 import RoleProtectedRoute from "../components/RoleProtectedRoute";
 
 const ProtectedRoute = ({ element }) => {
-  const isAuthenticated = Boolean(getTokenWithExpiry());
-  return isAuthenticated ? element : <Navigate to="/login" replace />;
+  const reduxAuth = useSelector(selectIsAuthenticated);
+  const localAuth = Boolean(getTokenWithExpiry());
+  const isAuthenticated = reduxAuth || localAuth;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return element;
 };
 
 const AppRoutes = () => {

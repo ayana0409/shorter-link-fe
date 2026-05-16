@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getTokenRole, getTokenWithExpiry, removeToken } from '../constants/localStorage';
+import { logout as logoutAction, selectIsAuthenticated } from '../store/authSlice';
+import { post } from '../utils/request';
 import NotificationBell from './NotificationBell';
 
 const navItems = [
@@ -32,9 +35,10 @@ const Navbar = () => {
     const [openDropdown, setOpenDropdown] = useState(null);
     const navRef = useRef(null);
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const location = useLocation();
     const role = getTokenRole();
-    const loggedIn = Boolean(getTokenWithExpiry());
+    const loggedIn = useSelector(selectIsAuthenticated) || Boolean(getTokenWithExpiry());
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -47,7 +51,14 @@ const Navbar = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        // Notify backend to revoke refresh token (cookie is cleared by backend)
+        try {
+            await post('/auth/logout', {});
+        } catch {
+            // Ignore errors — clear local state anyway
+        }
+        dispatch(logoutAction());
         removeToken();
         navigate('/login');
     };

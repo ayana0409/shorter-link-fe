@@ -2,17 +2,74 @@ import axios from "axios";
 import {
     getTokenWithExpiry,
     removeToken,
-    getRefreshToken,
-    setTokenWithExpiry,
-    setRefreshToken,
     decodeJWT,
     getTokenPayload,
+    setTokenWithExpiry,
 } from "../constants/localStorage";
+import store from "../store";
+import { updateAccessToken, logout as logoutAction } from "../store/authSlice";
 
 // ─── Configuration ──────────────────────────────────────────
-const REFRESH_THRESHOLD_MS = Number(process.env.REACT_APP_REFRESH_THRESHOLD_MS) || 6 * 60 * 1000; // Refresh if < 6 min remaining
-const PROACTIVE_REFRESH_INTERVAL_MS = Number(process.env.REACT_APP_PROACTIVE_REFRESH_INTERVAL_MS) || 2 * 60 * 1000; // Check every 2 minutes
+const REFRESH_THRESHOLD_MS =
+    Number(process.env.REACT_APP_REFRESH_THRESHOLD_MS) || 6 * 60 * 1000;
+const PROACTIVE_REFRESH_INTERVAL_MS =
+    Number(process.env.REACT_APP_PROACTIVE_REFRESH_INTERVAL_MS) || 2 * 60 * 1000;
+
 const apiBaseUrl = process.env.REACT_APP_API_URL || "http://localhost:3001";
+
+// ─── Multi-tab sync ─────────────────────────────────────────
+const CHANNEL_NAME = "auth_channel";
+let broadcastChannel = null;
+
+try {
+    broadcastChannel = new BroadcastChannel(CHANNEL_NAME);
+} catch {
+    // BroadcastChannel not supported
+}
+
+const broadcastAuthChange = (type, payload) => {
+    if (broadcastChannel) {
+        broadcastChannel.postMessage({ type, payload, timestamp: Date.now() });
+    }
+};
+
+export const initMultiTabSync = () => {
+    if (broadcastChannel) {
+        broadcastChannel.onmessage = (event) => {
+            const { type, payload } = event.data;
+            switch (type) {
+                case "LOGOUT":
+                    store.dispatch(logoutAction());
+                    break;
+                case "TOKEN_REFRESHED":
+                    if (payload?.access_token) {
+                        store.dispatch(updateAccessToken(payload.access_token));
+                    }
+                    break;
+                default:
+                    break;
+            }
+        };
+    }
+
+    window.addEventListener("storage", (event) => {
+        if (event.key === "auth_logout" && event.newValue) {
+            store.dispatch(logoutAction());
+            localStorage.removeItem("auth_logout");
+        }
+        if (event.key === "auth_token_refreshed" && event.newValue) {
+            try {
+                const data = JSON.parse(event.newValue);
+                if (data?.access_token) {
+                    store.dispatch(updateAccessToken(data.access_token));
+                }
+            } catch {
+                // ignore
+            }
+            localStorage.removeItem("auth_token_refreshed");
+        }
+    });
+};
 
 // ─── Refresh token state ────────────────────────────────────
 let isRefreshing = false;
@@ -27,40 +84,48 @@ const onTokenRefreshed = (newToken) => {
     refreshSubscribers = [];
 };
 
+// ─── Get access token from Redux ────────────────────────────
+const getAccessToken = () => {
+    return store.getState().auth.accessToken;
+};
+
 // ─── Core refresh function ──────────────────────────────────
 const performRefresh = async () => {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) {
-        return null;
-    }
-
     const payload = getTokenPayload();
     const username = payload?.username;
     if (!username) {
         return null;
     }
+
     try {
+        // Refresh token is sent automatically via HttpOnly cookie
         const response = await axios.post(
             `${apiBaseUrl}/auth/refresh`,
-            {
-                refresh_token: refreshToken,
-                username: username,
-            },
+            { username },
             { withCredentials: true },
         );
 
-        const {
-            access_token,
-            expires_in,
-            refresh_token: newRefreshToken,
-        } = response.data;
+        const { access_token, expires_in } = response.data;
 
+        // Update Redux store
+        store.dispatch(updateAccessToken(access_token));
+
+        // Keep localStorage in sync for backward compatibility
         setTokenWithExpiry(access_token, expires_in * 1000);
-        setRefreshToken(newRefreshToken);
+
+        // Broadcast to other tabs
+        broadcastAuthChange("TOKEN_REFRESHED", { access_token });
+        try {
+            localStorage.setItem(
+                "auth_token_refreshed",
+                JSON.stringify({ access_token, timestamp: Date.now() }),
+            );
+        } catch {
+            // ignore
+        }
 
         return access_token;
     } catch {
-        removeToken();
         return null;
     }
 };
@@ -86,13 +151,9 @@ const refreshAccessToken = async () => {
 
 // ─── Proactive refresh timer ────────────────────────────────
 const checkAndRefreshToken = async () => {
-    const token = getTokenWithExpiry();
+    const token = getAccessToken() || getTokenWithExpiry();
 
-    // No valid token — try to refresh (user might have closed and reopened)
     if (!token) {
-        const refreshToken = getRefreshToken();
-        if (!refreshToken) return;
-
         const newToken = await refreshAccessToken();
         if (!newToken) {
             window.location.href = "/login";
@@ -100,7 +161,6 @@ const checkAndRefreshToken = async () => {
         return;
     }
 
-    // Check remaining time
     const expiry = decodeJWT(token);
     if (!expiry) return;
 
@@ -113,11 +173,13 @@ const checkAndRefreshToken = async () => {
     }
 };
 
-// Start the proactive refresh interval (every 2 minutes)
 let proactiveTimer = null;
 export const startProactiveRefresh = () => {
     if (proactiveTimer) return;
-    proactiveTimer = setInterval(checkAndRefreshToken, PROACTIVE_REFRESH_INTERVAL_MS);
+    proactiveTimer = setInterval(
+        checkAndRefreshToken,
+        PROACTIVE_REFRESH_INTERVAL_MS,
+    );
 };
 
 export const stopProactiveRefresh = () => {
@@ -127,11 +189,10 @@ export const stopProactiveRefresh = () => {
     }
 };
 
-// Start immediately
 startProactiveRefresh();
 
 // ─── Axios instance ─────────────────────────────────────────
-const getToken = () => getTokenWithExpiry();
+const getToken = () => getAccessToken() || getTokenWithExpiry();
 
 const request = axios.create({
     baseURL: apiBaseUrl,
@@ -177,23 +238,34 @@ request.interceptors.response.use(
             }
 
             if (status === 403 && /khóa|locked|bị khóa/i.test(message)) {
+                store.dispatch(logoutAction());
                 removeToken();
+                broadcastAuthChange("LOGOUT");
+                try {
+                    localStorage.setItem("auth_logout", String(Date.now()));
+                } catch {
+                    // ignore
+                }
                 window.location.href = "/locked";
                 return Promise.reject(error);
             }
 
             if (status === 401) {
-                // Try to refresh the token
                 const newToken = await refreshAccessToken();
 
                 if (newToken) {
-                    // Retry the original request with the new token
                     const originalRequest = error.config;
                     originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
                     return request(originalRequest);
                 } else {
-                    // Refresh failed — session expired
+                    store.dispatch(logoutAction());
                     removeToken();
+                    broadcastAuthChange("LOGOUT");
+                    try {
+                        localStorage.setItem("auth_logout", String(Date.now()));
+                    } catch {
+                        // ignore
+                    }
                     window.location.href = "/login";
                 }
             }

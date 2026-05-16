@@ -39,25 +39,11 @@ export const getTokenWithExpiry = () => {
 }
 
 /**
- * Store refresh token (no expiry check — managed by Redis TTL on backend)
- */
-export const setRefreshToken = (refreshToken) => {
-    localStorage.setItem('refresh_token', refreshToken)
-}
-
-/**
- * Get the stored refresh token
- */
-export const getRefreshToken = () => {
-    return localStorage.getItem('refresh_token')
-}
-
-/**
- * Clear both access and refresh tokens
+ * Clear access token from localStorage.
+ * Refresh token is stored in HttpOnly cookie — cleared by backend on logout.
  */
 export const removeToken = () => {
     localStorage.removeItem('token')
-    localStorage.removeItem('refresh_token')
 }
 
 export const getTokenPayload = () => {

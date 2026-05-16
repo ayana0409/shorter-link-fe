@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { post } from "../../utils/request";
 import toast from "react-hot-toast";
-import { setTokenWithExpiry, setRefreshToken, getTokenWithExpiry } from "../../constants/localStorage";
+import { setTokenWithExpiry, getTokenWithExpiry } from "../../constants/localStorage";
+import { setCredentials } from "../../store/authSlice";
 import PageWrapper from "../../components/PageWrapper";
 import { MSG } from "../../constants/messages";
 
 const Login = () => {
+    const dispatch = useDispatch();
     const [user, setUser] = useState({
         username: '',
         password: ''
@@ -28,9 +31,10 @@ const Login = () => {
         post('/auth/login', user)
             .then(res => {
                 setTokenWithExpiry(res.access_token, res.expires_in * 1000);
-                if (res.refresh_token) {
-                    setRefreshToken(res.refresh_token);
-                }
+                dispatch(setCredentials({
+                    access_token: res.access_token,
+                    user: res.user,
+                }));
                 toast.success(MSG.LOGIN.SUCCESS);
                 navigate(redirectTo, { replace: true });
             })
