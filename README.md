@@ -1,70 +1,204 @@
-# Getting Started with Create React App
+# 🔗 Shorter Link — Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+> Giao diện quản lý URL rút gọn xây dựng trên React 19 với Redux Toolkit, React Router, Tailwind CSS, Socket.IO Client và QR code generation.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 📋 Mục lục
 
-### `npm start`
+- [Tổng quan](#-tổng-quan)
+- [Kiến trúc](#-kiến-trúc)
+- [Công nghệ sử dụng](#-công-nghệ-sử-dụng)
+- [Chức năng](#-chức-năng)
+- [Routing](#-routing)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 🔭 Tổng quan
 
-### `npm test`
+**Shorter Link Frontend** là giao diện SPA (Single Page Application) cho hệ thống rút gọn URL, được xây dựng trên **React 19** với **Create React App**. Ứng dụng hỗ trợ:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- **Xác thực JWT** với refresh token tự động (HttpOnly Cookie + Axios interceptor)
+- **Phân quyền theo vai trò** (RBAC) — điều hướng dựa trên role `user`, `manager`, `admin`
+- **Quản lý link rút gọn** — tạo, tìm kiếm, lọc, phân trang, thống kê
+- **Quản lý nhóm** — tạo nhóm, thêm/xóa thành viên và link
+- **Thông báo real-time** qua Socket.IO Client
+- **Tạo mã QR** cho link rút gọn
+- **Đa ngôn ngữ** (Tiếng Việt) — tập trung message constants
+- **Multi-tab sync** — đồng bộ trạng thái auth giữa các tab (BroadcastChannel + localStorage events)
+- **Proactive token refresh** — tự động refresh token trước khi hết hạn
+- **Maintenance mode** — hiển thị màn hình bảo trì khi mất kết nối backend
 
-### `npm run build`
+---
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🏗 Kiến trúc
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```
+shorter-link-fe/
+├── src/
+│   ├── components/           # UI components dùng chung
+│   │   ├── Footer.js         # Footer chung
+│   │   ├── Navbar.js         # Thanh điều hướng
+│   │   ├── NotificationBell.js    # Chuông thông báo real-time
+│   │   ├── PageWrapper.js         # Bọc layout trang
+│   │   ├── QrCodePreview.js       # Xem trước mã QR
+│   │   └── RoleProtectedRoute.js  # Route guard theo role
+│   ├── constants/            # Hằng số & tiện ích local
+│   │   ├── localStorage.js   # Token storage, JWT decode, expiry check
+│   │   └── messages.js       # Tập trung UI messages (Tiếng Việt)
+│   ├── pages/                # Các trang theo tính năng
+│   │   ├── accounts/         # Đăng ký (RegisterPage)
+│   │   ├── auth/             # Đăng nhập (LoginPage)
+│   │   ├── admin/            # Trang quản trị (9 sub-pages)
+│   │   │   ├── AdminPage.js           # Dashboard
+│   │   │   ├── AccountManagementPage.js
+│   │   │   ├── AccountDetailPage.js
+│   │   │   ├── AccountGroupsPage.js
+│   │   │   ├── AuditLogPage.js
+│   │   │   ├── SystemConfigPage.js
+│   │   │   ├── LevelManagementPage.js
+│   │   │   ├── SystemHealthPage.js
+│   │   │   └── SendNotificationPage.js
+│   │   ├── group/            # Quản lý nhóm
+│   │   │   ├── GroupsPage.js
+│   │   │   ├── GroupMembersPage.js
+│   │   │   └── GroupLinksPage.js
+│   │   ├── CreateLink.js     # Trang tạo & quản lý link
+│   │   ├── Navigator.js      # Redirect short URL
+│   │   ├── NotFoundOrExpire.js
+│   │   └── AccountLocked.js
+│   ├── routes/
+│   │   └── AppRoutes.js      # Định nghĩa routes & phân quyền
+│   ├── store/                # Redux Toolkit state
+│   │   ├── index.js          # Store configuration
+│   │   └── authSlice.js      # Auth state (token, user, isAuthenticated)
+│   ├── utils/                # Tiện ích
+│   │   ├── request.js        # Axios instance, interceptors, token refresh, multi-tab sync
+│   │   ├── notificationSocket.js  # Socket.IO client cho real-time notifications
+│   │   └── url.js            # URL helpers
+│   ├── App.js                # Root component — ping backend, maintenance mode
+│   ├── App.css
+│   ├── index.js              # Entry point — ReactDOM + Redux Provider
+│   └── index.css             # Tailwind CSS imports
+├── public/                   # Static assets
+├── build/                    # Production build output
+├── server.js                 # Express production server (serve SPA)
+├── tailwind.config.js        # Tailwind CSS configuration
+├── postcss.config.js         # PostCSS configuration
+└── package.json
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+---
 
-### `npm run eject`
+## 🛠 Công nghệ sử dụng
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+| Công nghệ            | Phiên bản | Mô tả                          |
+| -------------------- | --------- | ------------------------------ |
+| **React**            | 19.0.0    | UI framework                   |
+| **Redux Toolkit**    | ^2.12.0   | State management               |
+| **React Router DOM** | ^7.1.5    | Client-side routing            |
+| **Tailwind CSS**     | ^3.4.17   | Utility-first CSS framework    |
+| **Axios**            | ^1.7.9    | HTTP client với interceptors   |
+| **Socket.IO Client** | ^4.8.3    | Real-time WebSocket connection |
+| **qrcode**           | ^1.5.1    | Tạo mã QR cho link rút gọn     |
+| **react-hot-toast**  | ^2.5.1    | Toast notifications            |
+| **Express**          | ^4.18.3   | Production static file server  |
+| **Create React App** | 5.0.1     | Build tooling & dev server     |
+| **PostCSS**          | ^8.5.1    | CSS processing                 |
+| **Autoprefixer**     | ^10.4.20  | CSS vendor prefixes            |
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Kỹ thuật & Patterns
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- **Axios Interceptors** — Tự động attach Bearer token, xử lý 401/403, refresh token
+- **Proactive Token Refresh** — Kiểm tra mỗi 2 phút, refresh khi còn < 6 phút hết hạn
+- **Multi-tab Sync** — `BroadcastChannel` + `storage` event để đồng bý auth state giữa các tab
+- **Role-based Route Guard** — `RoleProtectedRoute` component kiểm tra role trước khi render
+- **Centralized Messages** — Tất cả UI strings trong `constants/messages.js`
+- **Socket.IO Auto-reconnect** — Kết nối lại tự động với exponential backoff
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+---
 
-## Learn More
+## 📦 Chức năng
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### 🔐 Xác thực
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- **Đăng ký** tài khoản mới
+- **Đăng nhập** — nhận JWT access token + refresh token (HttpOnly cookie)
+- **Refresh token tự động** — proactive refresh + on-401 refresh
+- **Đăng xuất** — xóa Redux state + localStorage + broadcast đến các tab khác
+- **Multi-tab sync** — đăng xuất/refresh token đồng bộ real-time giữa các tab
+- **Maintenance mode** — phát hiện backend offline, hiển thị thông báo bảo trì
 
-### Code Splitting
+### 🔗 Quản lý Link rút gọn
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+- **Tạo link rút gọn** — nhập URL gốc, tùy chọn mật khẩu, thời hạn
+- **Xem danh sách link** — phân trang, tìm kiếm, lọc theo trạng thái
+- **Xem quota** — số link còn lại có thể tạo trong ngày
+- **Thống kê (analytics)** — biểu đồ tạo link theo thời gian
+- **Tạo mã QR** — cho mỗi link rút gọn
+- **Redirect** — truy cập short URL → điều hướng đến URL gốc
 
-### Analyzing the Bundle Size
+### 👥 Quản lý Nhóm
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+- **Tạo / Sửa / Xóa nhóm**
+- **Thêm / Xóa thành viên** — với vai trò owner, manager, member
+- **Thêm / Xóa link** vào nhóm
+- **Xem danh sách** thành viên và link trong nhóm
 
-### Making a Progressive Web App
+### 🔔 Thông báo Real-time
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+- **Kết nối Socket.IO** đến WebSocket service
+- **Nhận thông báo** real-time (chuông thông báo)
+- **Gửi / Broadcast** thông báo (Admin)
 
-### Advanced Configuration
+### 🛠 Quản trị (Admin)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+- **Dashboard** — tổng quan hệ thống
+- **Quản lý tài khoản** — danh sách, chi tiết, khóa/mở khóa, xóa
+- **Quản lý cấp độ (Levels)** — tạo, sửa, xóa level với các giới hạn
+- **Cấu hình hệ thống** — chỉnh sửa config runtime
+- **Audit Log** — xem nhật ký thao tác
+- **System Health** — kiểm tra sức khỏe hệ thống
+- **Gửi thông báo** — gửi/broadcast notification
 
-### Deployment
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## 🛣 Routing
 
-### `npm run build` fails to minify
+| Route                      | Trang                    | Quyền    |
+| -------------------------- | ------------------------ | -------- |
+| `/`                        | Redirect → `/home`       | —        |
+| `/home`                    | Tạo & quản lý link       | User+    |
+| `/groups`                  | Danh sách nhóm           | User+    |
+| `/groups/:groupId/members` | Thành viên nhóm          | User+    |
+| `/groups/:groupId/links`   | Link trong nhóm          | User+    |
+| `/admin`                   | Dashboard quản trị       | Admin    |
+| `/admin/accounts`          | Quản lý tài khoản        | Manager+ |
+| `/admin/:id`               | Chi tiết tài khoản       | Admin    |
+| `/admin/:id/groups`        | Nhóm của tài khoản       | Admin    |
+| `/admin/levels`            | Quản lý cấp độ           | Admin    |
+| `/admin/config`            | Cấu hình hệ thống        | Admin    |
+| `/admin/audit`             | Audit log                | Admin    |
+| `/admin/health`            | System health            | Admin    |
+| `/admin/notifications`     | Gửi thông báo            | Admin    |
+| `/login`                   | Đăng nhập                | Public   |
+| `/register`                | Đăng ký                  | Public   |
+| `/s/:shortLink`            | Redirect short URL       | Public   |
+| `/not-found`               | Không tìm thấy / hết hạn | Public   |
+| `/locked`                  | Tài khoản bị khóa        | Public   |
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+---
+
+## � Related Repositories
+
+| Repository                 | Mô tả                                  | Link                                                |
+| -------------------------- | -------------------------------------- | --------------------------------------------------- |
+| **shorter-link-api**       | Backend REST API (NestJS)              | https://github.com/ayana0409/shorter-link-api       |
+| **shorter-link-fe**        | Frontend (ReactJS)                     | https://github.com/ayana0409/shorter-link-fe        |
+| **shorter-link-websocket** | WebSocket service (NestJS + Socket.IO) | https://github.com/ayana0409/shorter-link-websocket |
+
+---
+
+## �📄 License
+
+UNLICENSED — Private project.
