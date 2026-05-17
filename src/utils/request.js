@@ -3,7 +3,6 @@ import {
     getTokenWithExpiry,
     removeToken,
     decodeJWT,
-    getTokenPayload,
     setTokenWithExpiry,
 } from "../constants/localStorage";
 import store from "../store";
@@ -74,6 +73,8 @@ export const initMultiTabSync = () => {
 // ─── Refresh token state ────────────────────────────────────
 let isRefreshing = false;
 let refreshSubscribers = [];
+let lastSuccessfulRefresh = 0;
+const REFRESH_COOLDOWN_MS = 10000; // 10s cooldown after successful refresh
 
 const subscribeTokenRefresh = (callback) => {
     refreshSubscribers.push(callback);
@@ -89,10 +90,55 @@ const getAccessToken = () => {
     return store.getState().auth.accessToken;
 };
 
+// ─── Get username from token (works even if token is expired) ──
+const getUsernameFromToken = () => {
+    // Try Redux token first
+    const reduxToken = getAccessToken();
+    if (reduxToken) {
+        try {
+            const base64Url = reduxToken.split(".")[1];
+            if (base64Url) {
+                const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+                const padded = base64.padEnd(
+                    base64.length + ((4 - (base64.length % 4)) % 4),
+                    "=",
+                );
+                const payload = JSON.parse(atob(padded));
+                if (payload.username) return payload.username;
+            }
+        } catch {
+            // ignore decode errors
+        }
+    }
+
+    // Fallback: try localStorage token (may be expired but payload is still decodable)
+    try {
+        const itemStr = localStorage.getItem("token");
+        if (itemStr) {
+            const item = JSON.parse(itemStr);
+            if (item.value) {
+                const base64Url = item.value.split(".")[1];
+                if (base64Url) {
+                    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+                    const padded = base64.padEnd(
+                        base64.length + ((4 - (base64.length % 4)) % 4),
+                        "=",
+                    );
+                    const payload = JSON.parse(atob(padded));
+                    if (payload.username) return payload.username;
+                }
+            }
+        }
+    } catch {
+        // ignore
+    }
+
+    return null;
+};
+
 // ─── Core refresh function ──────────────────────────────────
 const performRefresh = async () => {
-    const payload = getTokenPayload();
-    const username = payload?.username;
+    const username = getUsernameFromToken();
     if (!username) {
         return null;
     }
@@ -107,11 +153,16 @@ const performRefresh = async () => {
 
         const { access_token, expires_in } = response.data;
 
-        // Update Redux store
+        // Update Redux store FIRST
         store.dispatch(updateAccessToken(access_token));
 
         // Keep localStorage in sync for backward compatibility
-        setTokenWithExpiry(access_token, expires_in * 1000);
+        // Add 60s buffer to expires_in to avoid clock skew issues
+        const safeExpiryMs = Math.max((expires_in * 1000) - 60000, 5 * 60 * 1000);
+        setTokenWithExpiry(access_token, safeExpiryMs);
+
+        // Record successful refresh timestamp
+        lastSuccessfulRefresh = Date.now();
 
         // Broadcast to other tabs
         broadcastAuthChange("TOKEN_REFRESHED", { access_token });
@@ -151,7 +202,15 @@ const refreshAccessToken = async () => {
 
 // ─── Proactive refresh timer ────────────────────────────────
 const checkAndRefreshToken = async () => {
-    const token = getAccessToken() || getTokenWithExpiry();
+    // Skip if we just refreshed (cooldown period)
+    const timeSinceLastRefresh = Date.now() - lastSuccessfulRefresh;
+    if (timeSinceLastRefresh < REFRESH_COOLDOWN_MS) {
+        return;
+    }
+
+    // Prefer Redux token (always up-to-date after refresh)
+    const reduxToken = getAccessToken();
+    const token = reduxToken || getTokenWithExpiry();
 
     if (!token) {
         const newToken = await refreshAccessToken();
@@ -186,8 +245,15 @@ const handleVisibilityChange = () => {
     if (now - lastVisibilityCheck < VISIBILITY_CHECK_DEBOUNCE_MS) return;
     lastVisibilityCheck = now;
 
-    // Check token immediately when tab becomes visible
-    const token = getAccessToken() || getTokenWithExpiry();
+    // Skip if we just refreshed (cooldown period)
+    const timeSinceLastRefresh = now - lastSuccessfulRefresh;
+    if (timeSinceLastRefresh < REFRESH_COOLDOWN_MS) {
+        return;
+    }
+
+    // Prefer Redux token (always up-to-date after refresh)
+    const reduxToken = getAccessToken();
+    const token = reduxToken || getTokenWithExpiry();
 
     // No token at all — try to refresh from cookie
     if (!token) {

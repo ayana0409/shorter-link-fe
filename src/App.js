@@ -15,7 +15,7 @@ import {
   logout as logoutAction,
 } from "./store/authSlice";
 import { store } from "./store";
-import { getTokenWithExpiry, getTokenPayload } from "./constants/localStorage";
+import { getTokenWithExpiry } from "./constants/localStorage";
 
 const apiBaseUrl = process.env.REACT_APP_API_URL || "http://localhost:3001";
 
@@ -70,8 +70,29 @@ function App() {
     if (currentToken) return; // Already have valid token
 
     // No valid access token — try to refresh using HttpOnly cookie
-    const payload = getTokenPayload();
-    const username = payload?.username;
+    // Decode username directly from localStorage token (may be expired but payload is decodable)
+    let username = null;
+    try {
+      const itemStr = localStorage.getItem("token");
+      if (itemStr) {
+        const item = JSON.parse(itemStr);
+        if (item.value) {
+          const base64Url = item.value.split(".")[1];
+          if (base64Url) {
+            const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+            const padded = base64.padEnd(
+              base64.length + ((4 - (base64.length % 4)) % 4),
+              "=",
+            );
+            const payload = JSON.parse(atob(padded));
+            username = payload.username;
+          }
+        }
+      }
+    } catch {
+      // ignore decode errors
+    }
+
     if (!username) return;
 
     try {
