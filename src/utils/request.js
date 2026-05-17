@@ -173,23 +173,97 @@ const checkAndRefreshToken = async () => {
     }
 };
 
+// ─── Page Visibility API — refresh immediately when tab regains focus ───
+let lastVisibilityCheck = 0;
+const VISIBILITY_CHECK_DEBOUNCE_MS = 5000; // Prevent rapid re-checks
+
+const handleVisibilityChange = () => {
+    // Only run when tab becomes visible
+    if (document.visibilityState !== "visible") return;
+
+    // Debounce: avoid checking too frequently
+    const now = Date.now();
+    if (now - lastVisibilityCheck < VISIBILITY_CHECK_DEBOUNCE_MS) return;
+    lastVisibilityCheck = now;
+
+    // Check token immediately when tab becomes visible
+    const token = getAccessToken() || getTokenWithExpiry();
+
+    // No token at all — try to refresh from cookie
+    if (!token) {
+        refreshAccessToken().then((newToken) => {
+            if (!newToken) {
+                // Only redirect if we're on a protected page
+                const publicPaths = ["/login", "/register", "/forgot-password", "/"];
+                if (!publicPaths.some((p) => window.location.pathname.startsWith(p))) {
+                    window.location.href = "/login";
+                }
+            }
+        });
+        return;
+    }
+
+    // Token exists — check if it's expired or about to expire
+    const expiry = decodeJWT(token);
+    if (!expiry) return;
+
+    const remaining = expiry - Date.now();
+
+    // Token already expired or about to expire — refresh immediately
+    if (remaining < REFRESH_THRESHOLD_MS) {
+        refreshAccessToken().then((newToken) => {
+            if (!newToken) {
+                const publicPaths = ["/login", "/register", "/forgot-password", "/"];
+                if (!publicPaths.some((p) => window.location.pathname.startsWith(p))) {
+                    window.location.href = "/login";
+                }
+            }
+        });
+    }
+};
+
+// ─── Visibility change listener setup ───────────────────────
+export const initVisibilityRefresh = () => {
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+};
+
+export const cleanupVisibilityRefresh = () => {
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+};
+
+// ─── Timer management (using setTimeout to avoid throttle) ──
 let proactiveTimer = null;
+let isProactiveRefreshRunning = false;
+
+const scheduleNextCheck = () => {
+    if (!isProactiveRefreshRunning) return;
+    proactiveTimer = setTimeout(async () => {
+        try {
+            await checkAndRefreshToken();
+        } finally {
+            // Schedule next check regardless of success/failure
+            scheduleNextCheck();
+        }
+    }, PROACTIVE_REFRESH_INTERVAL_MS);
+};
+
 export const startProactiveRefresh = () => {
-    if (proactiveTimer) return;
-    proactiveTimer = setInterval(
-        checkAndRefreshToken,
-        PROACTIVE_REFRESH_INTERVAL_MS,
-    );
+    if (isProactiveRefreshRunning) return;
+    isProactiveRefreshRunning = true;
+    scheduleNextCheck();
 };
 
 export const stopProactiveRefresh = () => {
+    isProactiveRefreshRunning = false;
     if (proactiveTimer) {
-        clearInterval(proactiveTimer);
+        clearTimeout(proactiveTimer);
         proactiveTimer = null;
     }
 };
 
+// Start both mechanisms
 startProactiveRefresh();
+initVisibilityRefresh();
 
 // ─── Axios instance ─────────────────────────────────────────
 const getToken = () => getAccessToken() || getTokenWithExpiry();

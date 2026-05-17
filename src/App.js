@@ -7,7 +7,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { Toaster } from "react-hot-toast";
 import { get } from "./utils/request";
-import { initMultiTabSync } from "./utils/request";
+import { initMultiTabSync, cleanupVisibilityRefresh } from "./utils/request";
 import {
   selectIsAuthenticated,
   setCredentials,
@@ -28,6 +28,9 @@ function App() {
   // Initialize multi-tab sync on mount
   useEffect(() => {
     initMultiTabSync();
+    return () => {
+      cleanupVisibilityRefresh();
+    };
   }, []);
 
   // Migrate existing localStorage token to Redux on first load
