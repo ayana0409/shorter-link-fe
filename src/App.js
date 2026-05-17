@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { BrowserRouter } from "react-router-dom";
 import { useSelector } from "react-redux";
+import axios from "axios";
 import AppRoutes from "./routes/AppRoutes";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -10,9 +11,13 @@ import { initMultiTabSync } from "./utils/request";
 import {
   selectIsAuthenticated,
   setCredentials,
+  updateAccessToken,
+  logout as logoutAction,
 } from "./store/authSlice";
 import { store } from "./store";
-import { getTokenWithExpiry } from "./constants/localStorage";
+import { getTokenWithExpiry, getTokenPayload } from "./constants/localStorage";
+
+const apiBaseUrl = process.env.REACT_APP_API_URL || "http://localhost:3001";
 
 function App() {
   const [isConnecting, setIsConnecting] = useState(true);
@@ -53,6 +58,43 @@ function App() {
     }
   }, [isAuthenticated]);
 
+  /**
+   * Auto-refresh access token from HttpOnly cookie on startup.
+   * Called after successful ping to ensure server is awake.
+   */
+  const attemptRefreshOnStartup = useCallback(async () => {
+    const currentToken = getTokenWithExpiry();
+    if (currentToken) return; // Already have valid token
+
+    // No valid access token — try to refresh using HttpOnly cookie
+    const payload = getTokenPayload();
+    const username = payload?.username;
+    if (!username) return;
+
+    try {
+      const response = await axios.post(
+        `${apiBaseUrl}/auth/refresh`,
+        { username },
+        { withCredentials: true },
+      );
+
+      const { access_token } = response.data;
+      store.dispatch(updateAccessToken(access_token));
+    } catch {
+      // Refresh failed — notify backend to revoke cookie, then clear state
+      try {
+        await axios.post(
+          `${apiBaseUrl}/auth/logout`,
+          {},
+          { withCredentials: true },
+        );
+      } catch {
+        // ignore logout API errors
+      }
+      store.dispatch(logoutAction());
+    }
+  }, []);
+
   useEffect(() => {
     let timer;
     const attemptPing = async () => {
@@ -60,6 +102,8 @@ function App() {
         await get("ping");
         setIsConnecting(false);
         setMaintenanceMode(false);
+        // After ping succeeds, try to refresh token
+        await attemptRefreshOnStartup();
       } catch (error) {
         if (retryCount < 3) {
           timer = setTimeout(() => {
@@ -73,7 +117,7 @@ function App() {
 
     attemptPing();
     return () => clearTimeout(timer);
-  }, [retryCount]);
+  }, [retryCount, attemptRefreshOnStartup]);
 
   if (isConnecting || maintenanceMode) {
     return (
