@@ -15,7 +15,19 @@ import {
   logout as logoutAction,
 } from "./store/authSlice";
 import { store } from "./store";
-import { getTokenWithExpiry } from "./constants/localStorage";
+import {
+  getTokenWithExpiry,
+  getRefreshToken,
+  setRefreshToken,
+  setTokenWithExpiry,
+  getIsSso,
+  removeToken,
+} from "./constants/localStorage";
+import {
+  parseJwt,
+  extractUserFromClaims,
+  refreshQuickBiteAccessToken,
+} from "./services/authService";
 
 const apiBaseUrl = process.env.REACT_APP_API_URL || "http://localhost:3001";
 
@@ -38,21 +50,21 @@ function App() {
     const token = getTokenWithExpiry();
     if (token && !isAuthenticated) {
       try {
-        const base64Url = token.split(".")[1];
-        const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-        const padded = base64.padEnd(
-          base64.length + ((4 - (base64.length % 4)) % 4),
-          "=",
-        );
-        const payload = JSON.parse(atob(padded));
+        const claims = parseJwt(token);
+        const user = extractUserFromClaims(claims);
+        const refreshToken = getRefreshToken();
+        const isSso = getIsSso();
+
         store.dispatch(
           setCredentials({
-            access_token: token,
-            user: {
-              username: payload.username,
-              fullname: payload.fullname,
-              role: payload.role,
+            accessToken: token,
+            refreshToken,
+            user: user || {
+              username: claims.username || claims.preferred_username,
+              fullname: claims.fullname || claims.name,
+              role: claims.role,
             },
+            isSso,
           }),
         );
       } catch {
@@ -62,30 +74,57 @@ function App() {
   }, [isAuthenticated]);
 
   /**
-   * Auto-refresh access token from HttpOnly cookie on startup.
+   * Auto-refresh access token on startup.
    * Called after successful ping to ensure server is awake.
    */
   const attemptRefreshOnStartup = useCallback(async () => {
     const currentToken = getTokenWithExpiry();
     if (currentToken) return; // Already have valid token
 
-    // No valid access token — try to refresh using HttpOnly cookie
-    // Decode username directly from localStorage token (may be expired but payload is decodable)
+    const isSso = getIsSso();
+    const currentRefreshToken = getRefreshToken();
+
+    // 1. If QuickBite SSO session
+    if (isSso && currentRefreshToken) {
+      try {
+        const { accessToken: newAccessToken, refreshToken: newRefreshToken, expiresIn } =
+          await refreshQuickBiteAccessToken(currentRefreshToken);
+
+        const claims = parseJwt(newAccessToken);
+        const user = extractUserFromClaims(claims);
+
+        store.dispatch(
+          setCredentials({
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+            user,
+            isSso: true,
+          }),
+        );
+
+        const safeExpiryMs = Math.max((expiresIn * 1000) - 60000, 5 * 60 * 1000);
+        setTokenWithExpiry(newAccessToken, safeExpiryMs);
+        if (newRefreshToken) {
+          setRefreshToken(newRefreshToken);
+        }
+        return;
+      } catch (err) {
+        removeToken();
+        store.dispatch(logoutAction());
+        return;
+      }
+    }
+
+    // 2. If Local ShorterLink session
     let username = null;
     try {
       const itemStr = localStorage.getItem("token");
       if (itemStr) {
         const item = JSON.parse(itemStr);
         if (item.value) {
-          const base64Url = item.value.split(".")[1];
-          if (base64Url) {
-            const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-            const padded = base64.padEnd(
-              base64.length + ((4 - (base64.length % 4)) % 4),
-              "=",
-            );
-            const payload = JSON.parse(atob(padded));
-            username = payload.username;
+          const claims = parseJwt(item.value);
+          if (claims) {
+            username = claims.username || claims.preferred_username || claims.unique_name;
           }
         }
       }
@@ -102,10 +141,11 @@ function App() {
         { withCredentials: true },
       );
 
-      const { access_token } = response.data;
+      const { access_token, expires_in } = response.data;
       store.dispatch(updateAccessToken(access_token));
+      const safeExpiryMs = Math.max((expires_in * 1000) - 60000, 5 * 60 * 1000);
+      setTokenWithExpiry(access_token, safeExpiryMs);
     } catch {
-      // Refresh failed — notify backend to revoke cookie, then clear state
       try {
         await axios.post(
           `${apiBaseUrl}/auth/logout`,
@@ -115,6 +155,7 @@ function App() {
       } catch {
         // ignore logout API errors
       }
+      removeToken();
       store.dispatch(logoutAction());
     }
   }, []);

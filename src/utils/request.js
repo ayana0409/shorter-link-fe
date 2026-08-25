@@ -4,9 +4,13 @@ import {
     removeToken,
     decodeJWT,
     setTokenWithExpiry,
+    getRefreshToken,
+    setRefreshToken,
+    getIsSso,
 } from "../constants/localStorage";
 import store from "../store";
-import { updateAccessToken, logout as logoutAction } from "../store/authSlice";
+import { updateAccessToken, setTokens, logout as logoutAction } from "../store/authSlice";
+import { refreshQuickBiteAccessToken } from "../services/authService";
 
 // ─── Configuration ──────────────────────────────────────────
 const REFRESH_THRESHOLD_MS =
@@ -104,7 +108,9 @@ const getUsernameFromToken = () => {
                     "=",
                 );
                 const payload = JSON.parse(atob(padded));
-                if (payload.username) return payload.username;
+                if (payload.username || payload.preferred_username || payload.unique_name) {
+                    return payload.username || payload.preferred_username || payload.unique_name;
+                }
             }
         } catch {
             // ignore decode errors
@@ -125,7 +131,9 @@ const getUsernameFromToken = () => {
                         "=",
                     );
                     const payload = JSON.parse(atob(padded));
-                    if (payload.username) return payload.username;
+                    if (payload.username || payload.preferred_username || payload.unique_name) {
+                        return payload.username || payload.preferred_username || payload.unique_name;
+                    }
                 }
             }
         }
@@ -138,13 +146,59 @@ const getUsernameFromToken = () => {
 
 // ─── Core refresh function ──────────────────────────────────
 const performRefresh = async () => {
+    const isSso = getIsSso() || store.getState().auth.isSso;
+    const currentRefreshToken =
+        store.getState().auth.refreshToken || getRefreshToken();
+
+    // 1. QuickBite SSO Token Refresh
+    if (isSso && currentRefreshToken) {
+        try {
+            const { accessToken: newAccessToken, refreshToken: newRefreshToken, expiresIn } =
+                await refreshQuickBiteAccessToken(currentRefreshToken);
+
+            // Update Redux store
+            store.dispatch(
+                setTokens({
+                    accessToken: newAccessToken,
+                    refreshToken: newRefreshToken,
+                }),
+            );
+
+            // Update localStorage
+            const safeExpiryMs = Math.max(
+                (expiresIn * 1000) - 60000,
+                5 * 60 * 1000,
+            );
+            setTokenWithExpiry(newAccessToken, safeExpiryMs);
+            if (newRefreshToken) {
+                setRefreshToken(newRefreshToken);
+            }
+
+            lastSuccessfulRefresh = Date.now();
+            broadcastAuthChange("TOKEN_REFRESHED", { access_token: newAccessToken });
+            try {
+                localStorage.setItem(
+                    "auth_token_refreshed",
+                    JSON.stringify({ access_token: newAccessToken, timestamp: Date.now() }),
+                );
+            } catch {
+                // ignore
+            }
+
+            return newAccessToken;
+        } catch (err) {
+            console.error("QuickBite SSO silent refresh failed:", err);
+            return null;
+        }
+    }
+
+    // 2. Local ShorterLink Token Refresh via HttpOnly Cookie
     const username = getUsernameFromToken();
     if (!username) {
         return null;
     }
 
     try {
-        // Refresh token is sent automatically via HttpOnly cookie
         const response = await axios.post(
             `${apiBaseUrl}/auth/refresh`,
             { username },
@@ -157,7 +211,6 @@ const performRefresh = async () => {
         store.dispatch(updateAccessToken(access_token));
 
         // Keep localStorage in sync for backward compatibility
-        // Add 60s buffer to expires_in to avoid clock skew issues
         const safeExpiryMs = Math.max((expires_in * 1000) - 60000, 5 * 60 * 1000);
         setTokenWithExpiry(access_token, safeExpiryMs);
 

@@ -2,26 +2,31 @@ import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 import { getTokenWithExpiry, getTokenRole } from "../constants/localStorage";
 import { selectIsAuthenticated, selectUser } from "../store/authSlice";
+import { getUserRoles, hasRoleMatch } from "../constants/roles";
 
 const RoleProtectedRoute = ({ element, requiredRole }) => {
-    // Hooks must be called unconditionally (Rules of Hooks)
     const reduxAuth = useSelector(selectIsAuthenticated);
     const reduxUser = useSelector(selectUser);
     const localAuth = Boolean(getTokenWithExpiry());
     const isAuthenticated = reduxAuth || localAuth;
     const userRole = reduxUser?.role || getTokenRole();
+    const allUserRoles = getUserRoles(reduxUser);
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />;
     }
 
-    if (!userRole) {
+    if (!userRole && allUserRoles.length === 0) {
         return <Navigate to="/not-found" replace />;
     }
 
     if (requiredRole) {
         const requiredRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-        if (!requiredRoles.includes(userRole)) {
+        const isMatch =
+            (userRole && requiredRoles.includes(userRole)) ||
+            hasRoleMatch(allUserRoles, requiredRoles);
+
+        if (!isMatch) {
             return <Navigate to="/not-found" replace />;
         }
     }
@@ -29,4 +34,4 @@ const RoleProtectedRoute = ({ element, requiredRole }) => {
     return element;
 };
 
-export default RoleProtectedRoute;
+export default RoleProtectedRoute;

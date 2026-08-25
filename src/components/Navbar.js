@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { getTokenRole, getTokenWithExpiry, removeToken } from '../constants/localStorage';
-import { logout as logoutAction, selectIsAuthenticated } from '../store/authSlice';
+import { getTokenRole, getTokenWithExpiry, removeToken, getIsSso } from '../constants/localStorage';
+import { logout as logoutAction, selectIsAuthenticated, selectUser, selectIsSso } from '../store/authSlice';
 import { post } from '../utils/request';
 import NotificationBell from './NotificationBell';
 
@@ -38,6 +38,8 @@ const Navbar = () => {
     const dispatch = useDispatch();
     const location = useLocation();
     const role = getTokenRole();
+    const user = useSelector(selectUser);
+    const isSso = useSelector(selectIsSso) || getIsSso();
     const loggedIn = useSelector(selectIsAuthenticated) || Boolean(getTokenWithExpiry());
 
     useEffect(() => {
@@ -52,7 +54,6 @@ const Navbar = () => {
     }, []);
 
     const handleLogout = async () => {
-        // Notify backend to revoke refresh token (cookie is cleared by backend)
         try {
             await post('/auth/logout', {});
         } catch {
@@ -169,16 +170,26 @@ const Navbar = () => {
                     <div className="mt-3 flex flex-col gap-2 sm:hidden px-4 pb-4">
                         <NotificationBell />
                         {loggedIn ? (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    handleLogout();
-                                }}
-                                className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-                            >
-                                Đăng xuất
-                            </button>
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-2 px-2 py-1 text-xs text-slate-600">
+                                    <span className="font-medium">{user?.fullname || user?.username}</span>
+                                    {isSso && (
+                                        <span className="px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 font-semibold text-[10px]">
+                                            QuickBite SSO
+                                        </span>
+                                    )}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setMenuOpen(false);
+                                        handleLogout();
+                                    }}
+                                    className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                                >
+                                    Đăng xuất
+                                </button>
+                            </div>
                         ) : location.pathname === '/login' ? (
                             <Link
                                 to="/home"
@@ -202,13 +213,25 @@ const Navbar = () => {
                 <div className="hidden items-center gap-3 sm:flex">
                     <NotificationBell />
                     {loggedIn ? (
-                        <button
-                            type="button"
-                            onClick={handleLogout}
-                            className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-                        >
-                            Đăng xuất
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-slate-100 border border-slate-200/60 text-xs text-slate-700">
+                                <span className="font-medium text-slate-900">
+                                    {user?.fullname || user?.username}
+                                </span>
+                                {isSso && (
+                                    <span className="px-1.5 py-0.5 rounded-full bg-orange-500 text-white font-bold text-[9px] tracking-wide">
+                                        SSO
+                                    </span>
+                                )}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleLogout}
+                                className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                            >
+                                Đăng xuất
+                            </button>
+                        </div>
                     ) : location.pathname === '/login' ? (
                         <Link
                             to="/home"
@@ -231,4 +254,5 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
 
