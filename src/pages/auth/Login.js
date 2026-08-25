@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { post } from "../../utils/request";
@@ -26,6 +26,7 @@ const Login = () => {
     // Default to 'local' for internal login priority, 'sso' as secondary
     const [authMode, setAuthMode] = useState("local"); // 'local' | 'sso'
     const [loading, setLoading] = useState(false);
+    const googleButtonRef = useRef(null);
 
     // Form state
     const [credentials, setCredentialsState] = useState({
@@ -139,42 +140,105 @@ const Login = () => {
         }
     };
 
-    // 3. Google SSO Login Handler (reads from environment variable)
-    const handleGoogleSSOClick = async () => {
-        if (!googleClientId) {
-            toast.error("Chưa cấu hình REACT_APP_GOOGLE_CLIENT_ID trong biến môi trường.");
-            return;
-        }
-
-        const idToken = prompt("Nhập Google ID Token (hoặc kết nối Google OAuth client):");
-        if (!idToken) return;
-
-        setLoading(true);
-        try {
-            const res = await loginWithGoogle(idToken);
-            setTokenWithExpiry(res.accessToken, (res.expiresIn || 3600) * 1000);
-            if (res.refreshToken) {
-                setRefreshToken(res.refreshToken);
+    // 3. Callback when Google Identity Services returns credential token
+    const handleGoogleCredentialResponse = useCallback(
+        async (response) => {
+            if (!response?.credential) {
+                console.warn("No Google credential returned");
+                return;
             }
-            setIsSso(true);
 
-            dispatch(
-                setAuth({
-                    user: res.user,
-                    accessToken: res.accessToken,
-                    refreshToken: res.refreshToken,
-                    idToken: res.idToken,
-                    isSso: true,
-                })
-            );
+            setLoading(true);
+            try {
+                const res = await loginWithGoogle(response.credential);
+                setTokenWithExpiry(res.accessToken, (res.expiresIn || 3600) * 1000);
+                if (res.refreshToken) {
+                    setRefreshToken(res.refreshToken);
+                }
+                setIsSso(true);
 
-            toast.success(`Đăng nhập Google SSO thành công!`);
-            navigate(redirectTo, { replace: true });
-        } catch (err) {
-            console.error("Google SSO Error:", err);
-            toast.error(err.response?.data?.message || "Đăng nhập Google SSO thất bại.");
-        } finally {
-            setLoading(false);
+                dispatch(
+                    setAuth({
+                        user: res.user,
+                        accessToken: res.accessToken,
+                        refreshToken: res.refreshToken,
+                        idToken: res.idToken,
+                        isSso: true,
+                    })
+                );
+
+                toast.success(
+                    `Chào mừng ${res.user.fullname || res.user.username}! Đăng nhập Google SSO thành công.`
+                );
+                navigate(redirectTo, { replace: true });
+            } catch (err) {
+                console.error("Google SSO Login Error:", err);
+                const rawMessage =
+                    err.response?.data?.message ||
+                    err.message ||
+                    "Đăng nhập Google SSO qua QuickBite thất bại.";
+                toast.error(rawMessage);
+            } finally {
+                setLoading(false);
+            }
+        },
+        [dispatch, navigate, redirectTo]
+    );
+
+    // Initialize Google Identity Services SDK and render button
+    useEffect(() => {
+        if (!googleClientId || authMode !== "sso") return;
+
+        const initializeGis = () => {
+            if (window.google?.accounts?.id) {
+                try {
+                    window.google.accounts.id.initialize({
+                        client_id: googleClientId,
+                        callback: handleGoogleCredentialResponse,
+                        auto_select: false,
+                        cancel_on_tap_outside: true,
+                    });
+
+                    if (googleButtonRef.current) {
+                        googleButtonRef.current.innerHTML = "";
+                        window.google.accounts.id.renderButton(
+                            googleButtonRef.current,
+                            {
+                                theme: "outline",
+                                size: "large",
+                                type: "standard",
+                                text: "signin_with",
+                                shape: "pill",
+                                width: 340,
+                                logo_alignment: "left",
+                            }
+                        );
+                    }
+                } catch (err) {
+                    console.error("Failed to initialize Google Identity Services:", err);
+                }
+            }
+        };
+
+        if (window.google?.accounts?.id) {
+            initializeGis();
+        } else {
+            const checkInterval = setInterval(() => {
+                if (window.google?.accounts?.id) {
+                    clearInterval(checkInterval);
+                    initializeGis();
+                }
+            }, 300);
+            return () => clearInterval(checkInterval);
+        }
+    }, [authMode, handleGoogleCredentialResponse]);
+
+    // Fallback trigger for Google One Tap / Sign In prompt
+    const handleGoogleSSOClick = () => {
+        if (window.google?.accounts?.id) {
+            window.google.accounts.id.prompt();
+        } else {
+            toast.error("Đang kết nối dịch vụ Google Sign-In, vui lòng thử lại sau giây lát.");
         }
     };
 
@@ -305,7 +369,7 @@ const Login = () => {
                     </button>
                 </form>
 
-                {/* Google SSO Button (in SSO tab) */}
+                {/* Google SSO Button via Google Identity Services (in SSO tab) */}
                 {authMode === "sso" && googleClientId && (
                     <div className="mt-4">
                         <div className="relative my-4">
@@ -317,11 +381,17 @@ const Login = () => {
                             </div>
                         </div>
 
+                        {/* Official Google Identity Services Render Container */}
+                        <div className="flex justify-center my-2">
+                            <div ref={googleButtonRef}></div>
+                        </div>
+
+                        {/* Fallback Custom Google Button (if GIS iframe fails to render) */}
                         <button
                             type="button"
                             onClick={handleGoogleSSOClick}
                             disabled={loading}
-                            className="w-full flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm"
+                            className="w-full flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm mt-2"
                         >
                             <svg className="h-4 w-4" viewBox="0 0 24 24">
                                 <path
@@ -341,7 +411,7 @@ const Login = () => {
                                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                                 />
                             </svg>
-                            Đăng nhập bằng tài khoản Google
+                            Đăng nhập tài khoản Google (One-Click)
                         </button>
                     </div>
                 )}
