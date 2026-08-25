@@ -266,10 +266,6 @@ const checkAndRefreshToken = async () => {
     const token = reduxToken || getTokenWithExpiry();
 
     if (!token) {
-        const newToken = await refreshAccessToken();
-        if (!newToken) {
-            window.location.href = "/login";
-        }
         return;
     }
 
@@ -279,8 +275,14 @@ const checkAndRefreshToken = async () => {
     const remaining = expiry - Date.now();
     if (remaining < REFRESH_THRESHOLD_MS) {
         const newToken = await refreshAccessToken();
-        if (!newToken) {
-            window.location.href = "/login";
+        if (!newToken && remaining <= 0) {
+            // Only redirect if token has completely expired
+            const publicPaths = ["/login", "/register", "/forgot-password", "/"];
+            if (!publicPaths.some((p) => window.location.pathname.startsWith(p))) {
+                store.dispatch(logoutAction());
+                removeToken();
+                window.location.href = "/login";
+            }
         }
     }
 };
@@ -308,17 +310,7 @@ const handleVisibilityChange = () => {
     const reduxToken = getAccessToken();
     const token = reduxToken || getTokenWithExpiry();
 
-    // No token at all — try to refresh from cookie
     if (!token) {
-        refreshAccessToken().then((newToken) => {
-            if (!newToken) {
-                // Only redirect if we're on a protected page
-                const publicPaths = ["/login", "/register", "/forgot-password", "/"];
-                if (!publicPaths.some((p) => window.location.pathname.startsWith(p))) {
-                    window.location.href = "/login";
-                }
-            }
-        });
         return;
     }
 
@@ -328,12 +320,14 @@ const handleVisibilityChange = () => {
 
     const remaining = expiry - Date.now();
 
-    // Token already expired or about to expire — refresh immediately
+    // Token already expired or about to expire — refresh proactively
     if (remaining < REFRESH_THRESHOLD_MS) {
         refreshAccessToken().then((newToken) => {
-            if (!newToken) {
+            if (!newToken && remaining <= 0) {
                 const publicPaths = ["/login", "/register", "/forgot-password", "/"];
                 if (!publicPaths.some((p) => window.location.pathname.startsWith(p))) {
+                    store.dispatch(logoutAction());
+                    removeToken();
                     window.location.href = "/login";
                 }
             }
