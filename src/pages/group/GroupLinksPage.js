@@ -1,4 +1,4 @@
-﻿import React from "react";
+import React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { get, post, remove, patch } from "../../utils/request";
