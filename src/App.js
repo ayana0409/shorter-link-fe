@@ -33,10 +33,26 @@ import { disconnectNotificationSocket } from "./utils/notificationSocket";
 import MaintenanceView from "./components/system/MaintenanceView";
 import OutOfHoursView from "./components/system/OutOfHoursView";
 import { MSG } from "./constants/messages";
+import { getStaticDestinationUrl } from "./constants/staticLinks";
 
 const apiBaseUrl = process.env.REACT_APP_API_URL || "http://localhost:3001";
 
 function App() {
+  // Pre-flight check: If accessing a static/fixed link, redirect immediately without waiting for sleeping backend
+  const staticTargetUrl = (() => {
+    const match = window.location.pathname.match(/^\/s\/([^/]+)/);
+    if (match) {
+      return getStaticDestinationUrl(match[1]);
+    }
+    return null;
+  })();
+
+  useEffect(() => {
+    if (staticTargetUrl) {
+      window.location.replace(staticTargetUrl);
+    }
+  }, [staticTargetUrl]);
+
   // System governance state (Maintenance & Operating Hours UTC+7)
   const [systemStatus, setSystemStatus] = useState(() => getSystemStatus());
   const lastWarningToastRef = useRef(0);
@@ -48,6 +64,8 @@ function App() {
 
   // Monitor real-time clock & system guard status every second
   useEffect(() => {
+    if (staticTargetUrl) return;
+
     const heartbeatTimer = setInterval(() => {
       const currentStatus = getSystemStatus();
       setSystemStatus(currentStatus);
@@ -86,18 +104,20 @@ function App() {
     }, 1000);
 
     return () => clearInterval(heartbeatTimer);
-  }, []);
+  }, [staticTargetUrl]);
 
   // Initialize multi-tab sync on mount
   useEffect(() => {
+    if (staticTargetUrl) return;
     initMultiTabSync();
     return () => {
       cleanupVisibilityRefresh();
     };
-  }, []);
+  }, [staticTargetUrl]);
 
   // Migrate existing localStorage token to Redux on first load
   useEffect(() => {
+    if (staticTargetUrl) return;
     const token = getTokenWithExpiry();
     if (token && !isAuthenticated) {
       try {
@@ -122,14 +142,14 @@ function App() {
         // Invalid token, ignore
       }
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, staticTargetUrl]);
 
   /**
    * Auto-refresh access token on startup.
    * Called after successful ping to ensure server is awake.
    */
   const attemptRefreshOnStartup = useCallback(async () => {
-    if (!canMakeNetworkRequests()) return;
+    if (staticTargetUrl || !canMakeNetworkRequests()) return;
 
     const currentToken = getTokenWithExpiry();
     if (currentToken) return; // Already have valid token
@@ -220,10 +240,15 @@ function App() {
       removeToken();
       store.dispatch(logoutAction());
     }
-  }, []);
+  }, [staticTargetUrl]);
 
-  // Ping backend only if system guard allows network requests
+  // Ping backend only if system guard allows network requests and NOT a static redirect
   useEffect(() => {
+    if (staticTargetUrl) {
+      setIsConnecting(false);
+      return;
+    }
+
     if (!systemStatus.canAccess) {
       setIsConnecting(false);
       return;
@@ -250,7 +275,19 @@ function App() {
 
     attemptPing();
     return () => clearTimeout(timer);
-  }, [retryCount, attemptRefreshOnStartup, systemStatus.canAccess]);
+  }, [retryCount, attemptRefreshOnStartup, systemStatus.canAccess, staticTargetUrl]);
+
+  // 0. Pre-flight static link instant redirect screen (bypasses sleeping server)
+  if (staticTargetUrl) {
+    return (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-50/80 backdrop-blur-sm">
+        <div className="flex flex-col items-center gap-3 rounded-3xl bg-white p-8 text-center shadow-xl border border-slate-100">
+          <div className="h-9 w-9 animate-spin rounded-full border-4 border-slate-200 border-t-blue-500" />
+          <p className="text-sm font-medium text-slate-700">Đang chuyển hướng...</p>
+        </div>
+      </div>
+    );
+  }
 
   // 1. Guard check: System Maintenance Screen
   if (systemStatus.isMaintain) {

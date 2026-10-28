@@ -6,6 +6,7 @@ import { get, post } from "../utils/request";
 import toast from 'react-hot-toast';
 import PageWrapper from "../components/PageWrapper";
 import { MSG } from "../constants/messages";
+import { getStaticDestinationUrl } from "../constants/staticLinks";
 
 const Navigator = () => {
     const { shortLink: rawShortLink } = useParams();
@@ -19,6 +20,13 @@ const Navigator = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
+        // Direct static link bypass: redirect immediately without contacting backend
+        const staticUrl = getStaticDestinationUrl(shortLink);
+        if (staticUrl) {
+            window.location.replace(staticUrl);
+            return;
+        }
+
         setIsLoading(true);
         get("shortener/" + shortLink)
             .then((response) => {
