@@ -1,5 +1,6 @@
 import { io } from "socket.io-client";
 import { getTokenPayload } from "../constants/localStorage";
+import { canMakeNetworkRequests } from "./systemGuard";
 
 const WS_URL = process.env.REACT_APP_WS_URL || "http://localhost:3002";
 
@@ -8,6 +9,14 @@ let listeners = [];
 let isConnecting = false;
 
 export const connectNotificationSocket = () => {
+    // Block all WebSocket connections if system is in maintenance or outside operating hours
+    if (!canMakeNetworkRequests()) {
+        if (socket) {
+            disconnectNotificationSocket();
+        }
+        return null;
+    }
+
     // Prevent duplicate connections (React Strict Mode, re-renders)
     if (socket?.connected || isConnecting) return socket;
 

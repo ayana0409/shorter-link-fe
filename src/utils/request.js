@@ -11,6 +11,7 @@ import {
 import store from "../store";
 import { updateAccessToken, setTokens, logout as logoutAction } from "../store/authSlice";
 import { refreshQuickBiteAccessToken } from "../services/authService";
+import { canMakeNetworkRequests } from "./systemGuard";
 
 // ─── Configuration ──────────────────────────────────────────
 const REFRESH_THRESHOLD_MS =
@@ -350,17 +351,31 @@ let isProactiveRefreshRunning = false;
 
 const scheduleNextCheck = () => {
     if (!isProactiveRefreshRunning) return;
+    if (!canMakeNetworkRequests()) {
+        stopProactiveRefresh();
+        return;
+    }
     proactiveTimer = setTimeout(async () => {
         try {
-            await checkAndRefreshToken();
+            if (canMakeNetworkRequests()) {
+                await checkAndRefreshToken();
+            } else {
+                stopProactiveRefresh();
+                return;
+            }
         } finally {
-            // Schedule next check regardless of success/failure
-            scheduleNextCheck();
+            // Schedule next check regardless of success/failure if requests are permitted
+            if (canMakeNetworkRequests()) {
+                scheduleNextCheck();
+            } else {
+                stopProactiveRefresh();
+            }
         }
     }, PROACTIVE_REFRESH_INTERVAL_MS);
 };
 
 export const startProactiveRefresh = () => {
+    if (!canMakeNetworkRequests()) return;
     if (isProactiveRefreshRunning) return;
     isProactiveRefreshRunning = true;
     scheduleNextCheck();
@@ -374,9 +389,11 @@ export const stopProactiveRefresh = () => {
     }
 };
 
-// Start both mechanisms
-startProactiveRefresh();
-initVisibilityRefresh();
+// Start both mechanisms only if system allows requests
+if (canMakeNetworkRequests()) {
+    startProactiveRefresh();
+    initVisibilityRefresh();
+}
 
 // ─── Axios instance ─────────────────────────────────────────
 const getToken = () => getAccessToken() || getTokenWithExpiry();
@@ -389,6 +406,12 @@ const request = axios.create({
 // ─── Request interceptor ────────────────────────────────────
 request.interceptors.request.use(
     (config) => {
+        // Enforce system guard: block all outgoing HTTP requests when under maintenance or outside operating hours
+        if (!canMakeNetworkRequests()) {
+            return Promise.reject(
+                new axios.Cancel("SYSTEM_DISABLED: System is under maintenance or outside operating hours.")
+            );
+        }
         const token = getToken();
         if (!config.headers) {
             config.headers = {};

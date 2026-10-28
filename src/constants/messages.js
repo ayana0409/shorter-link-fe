@@ -757,6 +757,33 @@ export const MSG = {
         LOADING: "Đang tải...",
         SESSION_EXPIRED: "Phiên của bạn đã hết hạn. Vui lòng đăng nhập lại.",
     },
+
+    // ==================== SYSTEM GUARD (MAINTENANCE & OPERATING HOURS) ====================
+    SYSTEM_GUARD: {
+        MAINTENANCE_BADGE: "Đang nâng cấp hệ thống",
+        MAINTENANCE_TITLE: "Hệ thống đang được nâng cấp một chút",
+        MAINTENANCE_DESC:
+            "Để mang đến cho bạn trải nghiệm mượt mà và an toàn nhất, đội ngũ kỹ thuật đang tiến hành bảo trì và nâng cấp định kỳ.",
+        MAINTENANCE_SUBTEXT:
+            "Quá trình này sẽ sớm hoàn tất. Bạn có thể dành chút thời gian thưởng thức một tách trà hoặc cà phê nhé! Cảm ơn bạn rất nhiều vì đã kiên nhẫn đồng hành cùng chúng mình.",
+
+        OUT_OF_HOURS_BADGE: "Ngoài khung giờ phục vụ",
+        OUT_OF_HOURS_TITLE: "Đã đến lúc hệ thống nghỉ ngơi",
+        OUT_OF_HOURS_DESC: (startup, shutdown) =>
+            `Hệ thống sẵn sàng phục vụ bạn từ ${startup} đến ${shutdown} mỗi ngày (theo giờ Việt Nam, UTC+7).`,
+        OUT_OF_HOURS_SUBTEXT:
+            "Hiện tại đã hết giờ phục vụ trong ngày, bạn hãy dành thời gian nghỉ ngơi để nạp lại năng lượng nhé!",
+        OUT_OF_HOURS_NEXT_OPEN: (startup) =>
+            `Hẹn gặp lại bạn vào ${startup} sáng ngày mai nhé!`,
+
+        LABEL_CURRENT_TIME: "Thời gian hiện tại (UTC+7)",
+        LABEL_WORKING_HOURS: "Khung giờ hoạt động",
+
+        WARNING_TOAST: (minutes, shutdown) =>
+            `Bạn ơi, hệ thống sẽ tạm nghỉ sau ${minutes} phút nữa (vào lúc ${shutdown}). Bạn nhớ hoàn thành và lưu lại các thao tác đang làm nhé!`,
+        WARNING_TOAST_URGENT: (minutes) =>
+            `Chỉ còn ${minutes} phút nữa là đến giờ tạm nghỉ, bạn hãy hoàn tất nốt công việc để tránh bị gián đoạn nhé!`,
+    },
 };
 
 MSG.ACCOUNT = MSG.ADMIN.ACCOUNT;
