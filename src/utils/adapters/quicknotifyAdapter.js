@@ -26,6 +26,7 @@ const QN_URL = formatWsUrl(rawQnUrl);
 let ws = null;
 let listeners = [];
 let reconnectTimer = null;
+let heartbeatTimer = null;
 let isManualDisconnect = false;
 let isConnecting = false;
 
@@ -36,6 +37,42 @@ const eventHandlers = {
 };
 
 /**
+ * Start keep-alive heartbeat ping every 25s to keep WebSocket connection
+ * alive across reverse proxies (Nginx / Cloudflare) and prevent idle drops.
+ */
+const startHeartbeat = () => {
+  stopHeartbeat();
+  heartbeatTimer = setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try {
+        // Send a lightweight ping text payload; QuickNotify ReadPump consumes and discards it
+        ws.send(JSON.stringify({ type: "ping" }));
+      } catch {
+        // Ignore send errors during heartbeat
+      }
+    }
+  }, 25000);
+};
+
+const stopHeartbeat = () => {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+};
+
+/**
+ * Schedule reconnect with delay, ensuring continuous retry on network/token blips
+ */
+const scheduleReconnect = (delay = 3000) => {
+  if (isManualDisconnect) return;
+  clearTimeout(reconnectTimer);
+  reconnectTimer = setTimeout(() => {
+    connect();
+  }, delay);
+};
+
+/**
  * Fetch a short-lived QuickNotify authentication token from backend
  */
 const fetchQuickNotifyToken = async () => {
@@ -43,7 +80,6 @@ const fetchQuickNotifyToken = async () => {
     const res = await get("notifications/qn-token");
     return res?.token || null;
   } catch (err) {
-    console.warn("[QuickNotifyAdapter] Failed to fetch QN token:", err.message);
     return null;
   }
 };
@@ -64,15 +100,31 @@ export const connect = async () => {
     const qnToken = await fetchQuickNotifyToken();
     if (!qnToken) {
       isConnecting = false;
+      // Retry after 5s if token fetch failed (e.g. backend temporarily uncontactable)
+      scheduleReconnect(5000);
       return null;
     }
 
-    const wsUrl = `${QN_URL}/ws?token=${encodeURIComponent(qnToken)}`;
+    // Clean up previous dead connection if any
+    if (ws) {
+      try {
+        ws.onopen = null;
+        ws.onmessage = null;
+        ws.onclose = null;
+        ws.onerror = null;
+        ws.close();
+      } catch {
+        // Ignore close errors on stale socket
+      }
+      ws = null;
+    }
 
+    const wsUrl = `${QN_URL}/ws?token=${encodeURIComponent(qnToken)}`;
     ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       isConnecting = false;
+      startHeartbeat();
       eventHandlers.connect.forEach((fn) => {
         try {
           fn();
@@ -121,17 +173,14 @@ export const connect = async () => {
             }
           });
         } catch (parseErr) {
-          console.warn(
-            "[QuickNotifyAdapter] Failed to parse message line:",
-            trimmed,
-            parseErr,
-          );
+          // Ignore invalid frames
         }
       }
     };
 
     ws.onclose = (event) => {
       isConnecting = false;
+      stopHeartbeat();
       eventHandlers.disconnect.forEach((fn) => {
         try {
           fn(event);
@@ -140,21 +189,19 @@ export const connect = async () => {
         }
       });
 
-      if (!isManualDisconnect) {
-        clearTimeout(reconnectTimer);
-        reconnectTimer = setTimeout(() => {
-          connect();
-        }, 3000);
-      }
+      scheduleReconnect(3000);
     };
 
-    ws.onerror = (error) => {
+    ws.onerror = () => {
       isConnecting = false;
+      stopHeartbeat();
     };
 
     return ws;
   } catch (err) {
     isConnecting = false;
+    stopHeartbeat();
+    scheduleReconnect(5000);
     return null;
   }
 };
@@ -164,9 +211,14 @@ export const disconnect = () => {
   isConnecting = false;
   clearTimeout(reconnectTimer);
   reconnectTimer = null;
+  stopHeartbeat();
 
   if (ws) {
-    ws.close();
+    try {
+      ws.close();
+    } catch {
+      // Ignore close errors
+    }
     ws = null;
   }
   listeners = [];
