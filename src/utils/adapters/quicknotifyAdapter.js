@@ -3,11 +3,22 @@ import { get } from "../request";
 const rawQnUrl =
   process.env.REACT_APP_QUICKNOTIFY_URL || "ws://localhost:8080";
 
-// Ensure URL starts with ws:// or wss://
+// Ensure URL starts with ws:// or wss:// and matches current page protocol (HTTPS -> WSS)
 const formatWsUrl = (url) => {
-  if (url.startsWith("http://")) return url.replace("http://", "ws://");
-  if (url.startsWith("https://")) return url.replace("https://", "wss://");
-  return url;
+  let formatted = url;
+  if (formatted.startsWith("http://")) formatted = formatted.replace("http://", "ws://");
+  if (formatted.startsWith("https://")) formatted = formatted.replace("https://", "wss://");
+
+  // If current page is loaded over HTTPS, automatically upgrade ws:// to wss:// to prevent browser Mixed Content block
+  if (
+    typeof window !== "undefined" &&
+    window.location.protocol === "https:" &&
+    formatted.startsWith("ws://")
+  ) {
+    formatted = formatted.replace("ws://", "wss://");
+  }
+
+  return formatted;
 };
 
 const QN_URL = formatWsUrl(rawQnUrl);
@@ -50,24 +61,18 @@ export const connect = async () => {
   isManualDisconnect = false;
 
   try {
-    console.log("[QuickNotifyAdapter] Requesting QuickNotify token from backend...");
     const qnToken = await fetchQuickNotifyToken();
     if (!qnToken) {
       isConnecting = false;
-      console.warn(
-        "[QuickNotifyAdapter] No QuickNotify token received, aborting connection",
-      );
       return null;
     }
 
     const wsUrl = `${QN_URL}/ws?token=${encodeURIComponent(qnToken)}`;
-    console.log("[QuickNotifyAdapter] Connecting to QuickNotify WebSocket at:", QN_URL);
 
     ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       isConnecting = false;
-      console.log("[QuickNotifyAdapter] Connected to QuickNotify successfully");
       eventHandlers.connect.forEach((fn) => {
         try {
           fn();
@@ -78,7 +83,6 @@ export const connect = async () => {
     };
 
     ws.onmessage = (event) => {
-      console.log("[QuickNotifyAdapter] Received WebSocket frame:", event.data);
       if (typeof event.data !== "string") return;
 
       // QuickNotify may send multiple newline-separated messages in a single frame
@@ -88,7 +92,6 @@ export const connect = async () => {
         if (!trimmed) continue;
         try {
           const notification = JSON.parse(trimmed);
-          console.log("[QuickNotifyAdapter] Parsed notification:", notification);
 
           const contentData = notification.content?.data || {};
           const eventName =
@@ -106,7 +109,7 @@ export const connect = async () => {
               contentData.message ||
               (typeof contentData === "string"
                 ? contentData
-                : "Bạn có thông báo mới"),
+                : ""),
             ...contentData,
           };
 
@@ -129,9 +132,6 @@ export const connect = async () => {
 
     ws.onclose = (event) => {
       isConnecting = false;
-      console.warn(
-        `[QuickNotifyAdapter] Connection closed (code: ${event.code}, reason: "${event.reason || "none"}")`,
-      );
       eventHandlers.disconnect.forEach((fn) => {
         try {
           fn(event);
@@ -143,7 +143,6 @@ export const connect = async () => {
       if (!isManualDisconnect) {
         clearTimeout(reconnectTimer);
         reconnectTimer = setTimeout(() => {
-          console.log("[QuickNotifyAdapter] Auto-reconnecting to QuickNotify...");
           connect();
         }, 3000);
       }
@@ -151,13 +150,11 @@ export const connect = async () => {
 
     ws.onerror = (error) => {
       isConnecting = false;
-      console.error("[QuickNotifyAdapter] WebSocket error:", error);
     };
 
     return ws;
   } catch (err) {
     isConnecting = false;
-    console.error("[QuickNotifyAdapter] Connect failed:", err);
     return null;
   }
 };
