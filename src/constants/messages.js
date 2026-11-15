@@ -787,4 +787,3 @@ export const MSG = {
 };
 
 MSG.ACCOUNT = MSG.ADMIN.ACCOUNT;
-

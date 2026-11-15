@@ -356,8 +356,22 @@ function App() {
 
   // 4. Standard Application Screen
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
-      <Toaster position="top-right" reverseOrder={false} />
+    <div className="flex min-h-[100dvh] flex-col bg-slate-50 text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900">
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          style: {
+            borderRadius: '1.25rem',
+            background: '#0f172a',
+            color: '#ffffff',
+            fontSize: '13px',
+            fontWeight: 500,
+            padding: '12px 18px',
+            boxShadow: '0 20px 40px -8px rgba(15, 23, 42, 0.25)',
+          },
+        }}
+      />
 
       <BrowserRouter>
         <div className="flex flex-grow flex-col">

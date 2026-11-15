@@ -232,68 +232,67 @@ const NotificationBell = () => {
 
   return (
     <div className="relative flex justify-end" ref={dropdownRef}>
-      {/* Bell Button */}
+      {/* Bell Trigger Button */}
       <button
         ref={bellRef}
         onClick={handleToggle}
-        className="relative rounded-full p-2 text-slate-600 hover:bg-slate-100 transition"
+        aria-label="Hộp thông báo"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors active:scale-95"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6"
+          className="h-5 w-5"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
+          strokeWidth={1.8}
         >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+            d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
           />
         </svg>
+
+        {/* Unread Count Badge */}
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-xs">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
+
+        {/* Live Socket Status Dot */}
         <span
-          className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white ${
-            connected ? "bg-emerald-500" : "bg-red-400"
+          className={`absolute bottom-0.5 right-0.5 h-2 w-2 rounded-full border-2 border-white ${
+            connected ? "bg-emerald-500" : "bg-amber-400"
           }`}
+          title={connected ? "Đang đồng bộ trực tuyến" : "Mất kết nối tạm thời"}
         />
       </button>
 
-      {/* Dropdown — wider on desktop (480px), full width on mobile */}
+      {/* Popover Card */}
       {isOpen && (
         <div
-          ref={bellRef}
-          className="absolute right-0 top-full z-50 mt-2 rounded-2xl border border-slate-200 bg-white shadow-xl"
-          style={{
-            width:
-              typeof window !== "undefined" && window.innerWidth < 640
-                ? "calc(100vw - 32px)"
-                : "480px",
-            maxWidth: "480px",
-          }}
+          className="fixed sm:absolute right-4 sm:right-0 top-16 sm:top-full sm:mt-2.5 z-50 w-[calc(100vw-32px)] sm:w-[420px] max-w-[420px] overflow-hidden rounded-3xl border border-slate-200/90 bg-white/95 shadow-soft-xl backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-200"
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+          <div className="flex items-center justify-between border-b border-slate-100/80 px-5 py-3.5 bg-slate-50/50">
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">
+              <h3 className="text-sm font-bold text-slate-900 tracking-tight">
                 {MSG.ADMIN.NOTIFICATION.TITLE}
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                <span className={`inline-block h-1.5 w-1.5 rounded-full ${connected ? "bg-emerald-500" : "bg-amber-400"}`} />
                 {connected
                   ? MSG.ADMIN.NOTIFICATION.CONNECTED
                   : MSG.ADMIN.NOTIFICATION.DISCONNECTED}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllRead}
-                  className="rounded-lg px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 transition"
+                  className="rounded-full px-2.5 py-1 text-[11px] font-semibold text-blue-600 hover:bg-blue-50 transition-colors"
                 >
                   {MSG.ADMIN.NOTIFICATION.MARK_ALL_READ}
                 </button>
@@ -301,7 +300,7 @@ const NotificationBell = () => {
               {notifications.length > 0 && (
                 <button
                   onClick={handleClearAll}
-                  className="rounded-lg px-2.5 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 transition"
+                  className="rounded-full px-2.5 py-1 text-[11px] font-medium text-slate-500 hover:bg-slate-100 transition-colors"
                 >
                   {MSG.ADMIN.NOTIFICATION.CLEAR_ALL}
                 </button>
@@ -309,53 +308,48 @@ const NotificationBell = () => {
             </div>
           </div>
 
-          {/* Notification List */}
-          <div className="max-h-96 overflow-y-auto">
+          {/* Notification Items List */}
+          <div className="max-h-96 overflow-y-auto divide-y divide-slate-100/60">
             {notifications.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-12 w-12 mb-3"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                  />
-                </svg>
-                <p className="text-sm">
+              <div className="flex flex-col items-center justify-center py-12 px-6 text-center text-slate-400">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-3">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.6} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-slate-700">
                   {MSG.ADMIN.NOTIFICATION.NO_NOTIFICATIONS}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Khi có sự kiện hoặc thông báo mới, chúng sẽ xuất hiện tại đây.
                 </p>
               </div>
             ) : (
               notifications.map((notif) => (
                 <div
                   key={notif.id}
-                  className={`border-b border-slate-50 px-5 py-3.5 transition hover:bg-slate-50 ${
-                    !notif.read ? "bg-blue-50/40" : ""
+                  className={`px-5 py-3.5 transition-colors hover:bg-slate-50/80 ${
+                    !notif.read ? "bg-blue-50/30" : ""
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider">
-                        {getEventLabel(notif.event)}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-700 break-words">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block rounded-md bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
+                          {getEventLabel(notif.event)}
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          {notif.timestamp.toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' })} · {notif.timestamp.toLocaleDateString("vi-VN")}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 text-xs sm:text-sm text-slate-700 break-words leading-relaxed">
                         {typeof notif.data === "object"
                           ? notif.data.message || JSON.stringify(notif.data)
                           : String(notif.data)}
                       </p>
-                      <p className="mt-1.5 text-xs text-slate-400">
-                        {notif.timestamp.toLocaleTimeString("vi-VN")} ·{" "}
-                        {notif.timestamp.toLocaleDateString("vi-VN")}
-                      </p>
                     </div>
                     {!notif.read && (
-                      <span className="mt-1.5 h-2.5 w-2.5 flex-shrink-0 rounded-full bg-blue-500" />
+                      <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-blue-600" />
                     )}
                   </div>
                 </div>
