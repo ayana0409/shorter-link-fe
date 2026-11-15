@@ -251,195 +251,206 @@ const Login = () => {
             title={MSG.LOGIN.TITLE}
             subtitle={MSG.LOGIN.SUBTITLE}
         >
-            <div className="mx-auto max-w-lg rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm shadow-slate-300/10">
-                {/* Header */}
-                <div className="text-center mb-6">
-                    {authMode === "sso" ? (
-                        <div className="inline-flex items-center justify-center gap-2 mb-3 px-3 py-1 rounded-full bg-orange-50 border border-orange-200/60 text-orange-600 text-xs font-semibold">
-                            <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse"></span>
-                            QuickBite SSO Identity
+            <div className="double-bezel-outer mx-auto max-w-md">
+                <div className="double-bezel-inner p-6 sm:p-8">
+                    {/* Header */}
+                    <div className="text-center mb-6">
+                        {authMode === "sso" ? (
+                            <div className="inline-flex items-center justify-center gap-1.5 mb-2.5 px-3 py-0.5 rounded-full bg-orange-50 border border-orange-200/60 text-orange-600 text-xs font-semibold">
+                                <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                                QuickBite SSO
+                            </div>
+                        ) : (
+                            <div className="inline-flex items-center justify-center gap-1.5 mb-2.5 px-3 py-0.5 rounded-full bg-blue-50 border border-blue-200/60 text-blue-600 text-xs font-semibold">
+                                <span className="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+                                Shorter Link
+                            </div>
+                        )}
+
+                        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                            {authMode === "local" ? "Đăng nhập" : "QuickBite SSO"}
+                        </h2>
+                        <p className="mt-1 text-xs sm:text-sm text-slate-500">
+                            {authMode === "local"
+                                ? "Đăng nhập bằng tài khoản Shorter Link của bạn"
+                                : "Sử dụng tài khoản hệ sinh thái QuickBite để truy cập"}
+                        </p>
+                    </div>
+
+                    {/* Tab Switcher: Segmented Pill */}
+                    <div className="mb-6 flex rounded-2xl bg-slate-100 p-1 text-xs font-semibold text-slate-600">
+                        <button
+                            type="button"
+                            onClick={() => setAuthMode("local")}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl transition ${
+                                authMode === "local"
+                                    ? "bg-white text-slate-900 shadow-soft-xs"
+                                    : "hover:text-slate-900"
+                            }`}
+                        >
+                            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            <span>Tài khoản nội bộ</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setAuthMode("sso")}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl transition ${
+                                authMode === "sso"
+                                    ? "bg-white text-orange-600 shadow-soft-xs"
+                                    : "hover:text-slate-900"
+                            }`}
+                        >
+                            <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            <span>QuickBite SSO</span>
+                        </button>
+                    </div>
+
+                    {/* Form */}
+                    <form
+                        onSubmit={authMode === "local" ? handleLocalLogin : handleQuickBiteLogin}
+                        className="space-y-4"
+                    >
+                        <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                {authMode === "local" ? MSG.LOGIN.LABEL_USERNAME : "Tài khoản QuickBite / Email"}
+                            </label>
+                            <input
+                                type="text"
+                                name="username"
+                                value={credentials.username}
+                                onChange={handleChange}
+                                placeholder={authMode === "local" ? "Tên đăng nhập của bạn" : "user@quickbite.vn"}
+                                required
+                                className={`w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs sm:text-sm text-slate-900 outline-none transition ${
+                                    authMode === "local"
+                                        ? "focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                                        : "focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-100"
+                                }`}
+                            />
                         </div>
-                    ) : (
-                        <div className="inline-flex items-center justify-center gap-2 mb-3 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/60 text-blue-600 text-xs font-semibold">
-                            <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-                            Shorter Link Portal
+
+                        <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                {MSG.LOGIN.LABEL_PASSWORD}
+                            </label>
+                            <input
+                                type="password"
+                                name="password"
+                                value={credentials.password}
+                                onChange={handleChange}
+                                placeholder="••••••••"
+                                required
+                                className={`w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs sm:text-sm text-slate-900 outline-none transition ${
+                                    authMode === "local"
+                                        ? "focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                                        : "focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-100"
+                                }`}
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className={`w-full flex items-center justify-center gap-2 rounded-2xl py-3.5 px-6 text-white text-xs sm:text-sm font-semibold transition shadow-soft-xs active:scale-[0.98] disabled:opacity-50 ${
+                                authMode === "local"
+                                    ? "bg-slate-900 hover:bg-slate-800"
+                                    : "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
+                            }`}
+                        >
+                            {loading ? (
+                                <>
+                                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                                    <span>Đang xử lý...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>{authMode === "local" ? MSG.LOGIN.BTN_SUBMIT : "Đăng nhập với QuickBite SSO"}</span>
+                                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/20 text-xs font-bold">→</span>
+                                </>
+                            )}
+                        </button>
+                    </form>
+
+                    {/* Google SSO Button via Google Identity Services (in SSO tab) */}
+                    {authMode === "sso" && googleClientId && (
+                        <div className="mt-4">
+                            <div className="relative my-4">
+                                <div className="absolute inset-0 flex items-center">
+                                    <div className="w-full border-t border-slate-100"></div>
+                                </div>
+                                <div className="relative flex justify-center text-[11px] uppercase">
+                                    <span className="bg-white px-2 text-slate-400 font-medium">hoặc</span>
+                                </div>
+                            </div>
+
+                            {/* Official Google Identity Services Render Container */}
+                            <div className="flex justify-center my-2">
+                                <div ref={googleButtonRef}></div>
+                            </div>
+
+                            {/* Fallback Custom Google Button (if GIS iframe fails to render) */}
+                            <button
+                                type="button"
+                                onClick={handleGoogleSSOClick}
+                                disabled={loading}
+                                className="w-full flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-2xs mt-2 active:scale-[0.98]"
+                            >
+                                <svg className="h-4 w-4" viewBox="0 0 24 24">
+                                    <path
+                                        fill="#4285F4"
+                                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                                    />
+                                    <path
+                                        fill="#34A853"
+                                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                                    />
+                                    <path
+                                        fill="#FBBC05"
+                                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                                    />
+                                    <path
+                                        fill="#EA4335"
+                                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                                    />
+                                </svg>
+                                <span>Đăng nhập với Google</span>
+                            </button>
                         </div>
                     )}
 
-                    <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                        {authMode === "local" ? "Đăng nhập Shorter Link" : "Đăng nhập với QuickBite SSO"}
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-500">
-                        {authMode === "local"
-                            ? "Đăng nhập bằng tài khoản nội bộ Shorter Link"
-                            : "Sử dụng tài khoản hệ sinh thái QuickBite để truy cập"}
-                    </p>
-                </div>
-
-                {/* Tab Switcher: Local First (Priority), SSO Second */}
-                <div className="mb-6 flex rounded-2xl bg-slate-100 p-1 text-sm font-medium text-slate-600">
-                    <button
-                        type="button"
-                        onClick={() => setAuthMode("local")}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl transition ${
-                            authMode === "local"
-                                ? "bg-white text-blue-600 font-semibold shadow-sm"
-                                : "hover:text-slate-900"
-                        }`}
-                    >
-                        <span>🔗</span>
-                        Đăng nhập nội bộ
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setAuthMode("sso")}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl transition ${
-                            authMode === "sso"
-                                ? "bg-white text-orange-600 font-semibold shadow-sm"
-                                : "hover:text-slate-900"
-                        }`}
-                    >
-                        <span>🍔</span>
-                        QuickBite SSO
-                    </button>
-                </div>
-
-                {/* Form */}
-                <form
-                    onSubmit={authMode === "local" ? handleLocalLogin : handleQuickBiteLogin}
-                    className="space-y-4"
-                >
-                    <div>
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-                            {authMode === "local" ? MSG.LOGIN.LABEL_USERNAME : "Tài khoản QuickBite / Email"}
-                        </label>
-                        <input
-                            type="text"
-                            name="username"
-                            value={credentials.username}
-                            onChange={handleChange}
-                            placeholder={authMode === "local" ? "Nhập tên đăng nhập" : "admin / user@quickbite.vn"}
-                            required
-                            className={`w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition ${
-                                authMode === "local"
-                                    ? "focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
-                                    : "focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-100"
-                            }`}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-600">
-                            {MSG.LOGIN.LABEL_PASSWORD}
-                        </label>
-                        <input
-                            type="password"
-                            name="password"
-                            value={credentials.password}
-                            onChange={handleChange}
-                            placeholder="••••••••"
-                            required
-                            className={`w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition ${
-                                authMode === "local"
-                                    ? "focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
-                                    : "focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-100"
-                            }`}
-                        />
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className={`w-full flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-white font-semibold transition shadow-md disabled:opacity-50 ${
-                            authMode === "local"
-                                ? "bg-blue-600 hover:bg-blue-700 shadow-blue-600/20"
-                                : "bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-orange-500/20"
-                        }`}
-                    >
-                        {loading ? (
-                            <>
-                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                                Đang xử lý...
-                            </>
-                        ) : authMode === "local" ? (
-                            MSG.LOGIN.BTN_SUBMIT
-                        ) : (
-                            "Đăng nhập với QuickBite SSO"
-                        )}
-                    </button>
-                </form>
-
-                {/* Google SSO Button via Google Identity Services (in SSO tab) */}
-                {authMode === "sso" && googleClientId && (
-                    <div className="mt-4">
-                        <div className="relative my-4">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-slate-200"></div>
-                            </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-white px-2 text-slate-400 font-medium">hoặc</span>
+                    {/* SSO Quick Information Notice */}
+                    {authMode === "sso" && (
+                        <div className="mt-4 rounded-2xl bg-amber-50/70 border border-amber-200/50 p-3 text-[11px] text-amber-800 flex items-start gap-2">
+                            <span className="text-sm leading-none">🛡️</span>
+                            <div>
+                                <span className="font-semibold">Bảo mật OpenID Connect:</span> Xác thực một lần, truy cập an toàn mọi ứng dụng trong hệ thống QuickBite.
                             </div>
                         </div>
+                    )}
 
-                        {/* Official Google Identity Services Render Container */}
-                        <div className="flex justify-center my-2">
-                            <div ref={googleButtonRef}></div>
-                        </div>
-
-                        {/* Fallback Custom Google Button (if GIS iframe fails to render) */}
-                        <button
-                            type="button"
-                            onClick={handleGoogleSSOClick}
-                            disabled={loading}
-                            className="w-full flex items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition shadow-sm mt-2"
-                        >
-                            <svg className="h-4 w-4" viewBox="0 0 24 24">
-                                <path
-                                    fill="#4285F4"
-                                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                                />
-                                <path
-                                    fill="#34A853"
-                                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                                />
-                                <path
-                                    fill="#FBBC05"
-                                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                                />
-                                <path
-                                    fill="#EA4335"
-                                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                                />
-                            </svg>
-                            Đăng nhập tài khoản Google (One-Click)
-                        </button>
-                    </div>
-                )}
-
-                {/* SSO Quick Information Notice */}
-                {authMode === "sso" && (
-                    <div className="mt-4 rounded-2xl bg-amber-50/70 border border-amber-200/50 p-3 text-xs text-amber-800 flex items-start gap-2">
-                        <span className="text-base leading-none">🛡️</span>
+                    {/* Footer Links */}
+                    <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
                         <div>
-                            <span className="font-semibold">Bảo mật OpenID Connect:</span> Xác thực một lần, truy cập an toàn mọi ứng dụng vệ tinh trong hệ thống QuickBite.
+                            {MSG.LOGIN.NO_ACCOUNT}{" "}
+                            <Link
+                                to="/register"
+                                className="font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+                            >
+                                {MSG.LOGIN.REGISTER_NOW}
+                            </Link>
                         </div>
+                        <span className="text-slate-400 text-[11px]">
+                            {authMode === "local" ? "Shorter Link Auth" : "OAuth 2.0 / OpenIddict"}
+                        </span>
                     </div>
-                )}
-
-                {/* Footer Links */}
-                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                    <div>
-                        {MSG.LOGIN.NO_ACCOUNT}{" "}
-                        <Link
-                            to="/register"
-                            className="font-semibold text-blue-600 hover:text-blue-700 hover:underline"
-                        >
-                            {MSG.LOGIN.REGISTER_NOW}
-                        </Link>
-                    </div>
-                    <span className="text-slate-400">
-                        {authMode === "local" ? "Shorter Link Auth" : "OAuth 2.0 / OpenIddict"}
-                    </span>
                 </div>
             </div>
         </PageWrapper>
