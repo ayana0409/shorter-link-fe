@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { get, post, remove } from "../../utils/request";
 import PageWrapper from "../../components/PageWrapper";
@@ -22,6 +23,7 @@ const MembersList = React.memo(({
     actionLoading,
     handleUpdateMemberRole,
     handleRemoveMember,
+    handleStartLeave,
 }) => {
     return (
         <div className="space-y-3">
@@ -115,6 +117,23 @@ const MembersList = React.memo(({
                                         </svg>
                                     </button>
                                 )}
+
+                                {isCurrentUser && !isOwner && handleStartLeave && (
+                                    <button
+                                        type="button"
+                                        onClick={handleStartLeave}
+                                        disabled={actionLoading}
+                                        title={MSG.GROUP.BTN_LEAVE}
+                                        className="min-h-[40px] px-3 flex items-center justify-center gap-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 transition-all duration-200 disabled:opacity-50 text-xs font-semibold"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                            <polyline points="16 17 21 12 16 7" />
+                                            <line x1="21" y1="12" x2="9" y2="12" />
+                                        </svg>
+                                        <span>{MSG.GROUP.BTN_LEAVE}</span>
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -144,6 +163,7 @@ const GroupMembersPage = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [maxMembersPerGroup, setMaxMembersPerGroup] = useState(null);
     const [totalPages, setTotalPages] = useState(1);
+    const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
     const userId = useMemo(() => getTokenPayload()?._id, []);
     const isAdmin = useMemo(() => getTokenPayload()?.role === "admin", []);
@@ -206,6 +226,40 @@ const GroupMembersPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [groupId]);
 
+    // Handle ESC key and body scroll lock for leave confirmation modal
+    useEffect(() => {
+        if (!showLeaveConfirm) return;
+        const handleKeyDown = (e) => {
+            if (e.key === "Escape") setShowLeaveConfirm(false);
+        };
+        document.body.style.overflow = "hidden";
+        window.addEventListener("keydown", handleKeyDown);
+        return () => {
+            document.body.style.overflow = "";
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [showLeaveConfirm]);
+
+    const handleStartLeaveGroup = () => {
+        setShowLeaveConfirm(true);
+    };
+
+    const handleConfirmLeaveGroup = async () => {
+        if (!groupId) return;
+        setActionLoading(true);
+        try {
+            const res = await post(`groups/${groupId}/leave`);
+            toast.success(res?.message || MSG.GROUP.SUCCESS_LEAVE);
+            setShowLeaveConfirm(false);
+            navigate("/groups");
+        } catch (error) {
+            const message = error.response?.data?.error?.message || MSG.GROUP.ERR_LEAVE;
+            toast.error(message);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     const handleAddGroupMember = async (e) => {
         if (e) e.preventDefault();
         if (!groupId) return;
@@ -216,13 +270,14 @@ const GroupMembersPage = () => {
 
         setActionLoading(true);
         try {
-            await post(`groups/${groupId}/members`, {
+            const response = await post(`groups/${groupId}/members`, {
                 userId: memberUserId.trim(),
                 role: memberRole,
             });
             await refreshMembers();
             setMemberUserId("");
-            toast.success(MSG.GROUP.SUCCESS_ADD_MEMBER);
+            const successMsg = response?.message || MSG.GROUP.INVITATIONS?.SENT_SUCCESS || MSG.GROUP.SUCCESS_ADD_MEMBER;
+            toast.success(successMsg);
         } catch (error) {
             toast.error(error.response?.data?.error?.message || MSG.GROUP.ERR_ADD_MEMBER);
         } finally {
@@ -343,6 +398,21 @@ const GroupMembersPage = () => {
                     >
                         {MSG.GROUP.BTN_VIEW_LINKS}
                     </Link>
+                    {!isOwner && group && (
+                        <button
+                            type="button"
+                            onClick={handleStartLeaveGroup}
+                            disabled={actionLoading}
+                            className="px-4 py-2.5 rounded-full bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 text-xs font-semibold transition flex items-center gap-1.5"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                <polyline points="16 17 21 12 16 7" />
+                                <line x1="21" y1="12" x2="9" y2="12" />
+                            </svg>
+                            <span>{MSG.GROUP.BTN_LEAVE}</span>
+                        </button>
+                    )}
                 </div>
             }
         >
@@ -524,6 +594,7 @@ const GroupMembersPage = () => {
                                 actionLoading={actionLoading}
                                 handleUpdateMemberRole={handleUpdateMemberRole}
                                 handleRemoveMember={handleRemoveMember}
+                                handleStartLeave={handleStartLeaveGroup}
                             />
                         )}
 
@@ -562,6 +633,71 @@ const GroupMembersPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Double-Bezel Leave Group Confirmation Modal */}
+            {showLeaveConfirm && group && typeof document !== 'undefined' && createPortal(
+                <div
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) setShowLeaveConfirm(false);
+                    }}
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xl animate-fade-in"
+                >
+                    <div className="double-bezel-outer p-2 rounded-[2rem] w-full max-w-md bg-white/10 ring-1 ring-white/20 shadow-2xl">
+                        <div className="double-bezel-inner p-6 sm:p-7 bg-white rounded-[calc(2rem-0.5rem)] space-y-5 text-left">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                        <polyline points="16 17 21 12 16 7" />
+                                        <line x1="21" y1="12" x2="9" y2="12" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900 tracking-tight">
+                                        {MSG.GROUP.LEAVE_CONFIRM_TITLE}
+                                    </h3>
+                                    <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                                        {group.name}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <p className="text-sm text-slate-600 leading-relaxed">
+                                {MSG.GROUP.LEAVE_CONFIRM_DESC(group.name)}
+                            </p>
+
+                            <div className="flex items-center justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowLeaveConfirm(false)}
+                                    disabled={actionLoading}
+                                    className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
+                                >
+                                    {MSG.GROUP.BTN_CANCEL}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleConfirmLeaveGroup}
+                                    disabled={actionLoading}
+                                    className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-soft-xs active:scale-[0.98] transition disabled:opacity-50 flex items-center gap-1.5"
+                                >
+                                    {actionLoading ? (
+                                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                            <polyline points="16 17 21 12 16 7" />
+                                            <line x1="21" y1="12" x2="9" y2="12" />
+                                        </svg>
+                                    )}
+                                    <span>{MSG.GROUP.BTN_CONFIRM_LEAVE}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </PageWrapper>
     );
 };

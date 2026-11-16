@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { get, post, put, remove } from "../../utils/request";
 import PageWrapper from "../../components/PageWrapper";
 import toast from "react-hot-toast";
 import { getTokenPayload } from "../../constants/localStorage";
 import { MSG } from "../../constants/messages";
+import InvitationsTab from "./components/InvitationsTab";
 
 /**
  * GroupsPage Component
@@ -24,8 +25,27 @@ const GroupsPage = () => {
     const [deleteGroupName, setDeleteGroupName] = useState("");
     const [deletePassword, setDeletePassword] = useState("");
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [leaveGroupTarget, setLeaveGroupTarget] = useState(null);
+    const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
     const [limits, setLimits] = useState({ maxGroupsCount: null });
+    const [searchParams, setSearchParams] = useSearchParams();
+    const initialTab = searchParams.get("tab") === "invitations" ? "invitations" : "groups";
+    const [activeTab, setActiveTab] = useState(initialTab); // "groups" | "invitations"
+    const [pendingInvitationsCount, setPendingInvitationsCount] = useState(0);
     const navigate = useNavigate();
+
+    // Sync tab state with query param
+    useEffect(() => {
+        const tab = searchParams.get("tab");
+        if (tab === "invitations" || tab === "groups") {
+            setActiveTab(tab);
+        }
+    }, [searchParams]);
+
+    const handleTabChange = (newTab) => {
+        setActiveTab(newTab);
+        setSearchParams(newTab === "groups" ? {} : { tab: newTab });
+    };
     const userId = useMemo(() => getTokenPayload()?._id, []);
 
     const fetchGroups = async () => {
@@ -40,18 +60,33 @@ const GroupsPage = () => {
         }
     };
 
+    const fetchPendingInvitationsCount = async () => {
+        try {
+            const data = await get("groups/invitations/me");
+            if (Array.isArray(data)) {
+                setPendingInvitationsCount(data.length);
+            }
+        } catch {
+            // Ignore background fetch error
+        }
+    };
+
     useEffect(() => {
         fetchGroups();
+        fetchPendingInvitationsCount();
         get("account/limits")
             .then((data) => setLimits(data))
             .catch(() => null);
     }, []);
 
-    // Handle ESC key and body scroll lock for delete confirmation modal
+    // Handle ESC key and body scroll lock for confirmation modals
     useEffect(() => {
-        if (!showDeleteConfirm) return;
+        if (!showDeleteConfirm && !showLeaveConfirm) return;
         const handleKeyDown = (e) => {
-            if (e.key === "Escape") handleCancelDelete();
+            if (e.key === "Escape") {
+                if (showDeleteConfirm) handleCancelDelete();
+                if (showLeaveConfirm) handleCancelLeave();
+            }
         };
         document.body.style.overflow = "hidden";
         window.addEventListener("keydown", handleKeyDown);
@@ -59,7 +94,7 @@ const GroupsPage = () => {
             document.body.style.overflow = "";
             window.removeEventListener("keydown", handleKeyDown);
         };
-    }, [showDeleteConfirm]);
+    }, [showDeleteConfirm, showLeaveConfirm]);
 
     const handleCreateGroup = async (e) => {
         if (e) e.preventDefault();
@@ -153,6 +188,32 @@ const GroupsPage = () => {
         }
     };
 
+    const handleStartLeave = (group) => {
+        setLeaveGroupTarget(group);
+        setShowLeaveConfirm(true);
+    };
+
+    const handleCancelLeave = () => {
+        setLeaveGroupTarget(null);
+        setShowLeaveConfirm(false);
+    };
+
+    const handleConfirmLeave = async () => {
+        if (!leaveGroupTarget) return;
+        setActionLoading(true);
+        try {
+            const res = await post(`groups/${leaveGroupTarget._id}/leave`);
+            setGroups((prev) => prev.filter((group) => group._id !== leaveGroupTarget._id));
+            toast.success(res?.message || MSG.GROUP.SUCCESS_LEAVE);
+            handleCancelLeave();
+        } catch (error) {
+            const message = error.response?.data?.error?.message || MSG.GROUP.ERR_LEAVE;
+            toast.error(message);
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     const isLimitReached = limits.maxGroupsCount !== null && groups.length >= limits.maxGroupsCount;
 
     return (
@@ -161,8 +222,69 @@ const GroupsPage = () => {
             subtitle={MSG.GROUP.PAGE_SUBTITLE}
         >
             <div className="space-y-6 max-w-6xl mx-auto">
-                {/* Top Section: Quota Limit Warning & Creation Omni-Box */}
-                <div className="space-y-4">
+                {/* Dual-Stream Segmented Tab Switcher */}
+                <div className="flex items-center justify-between pb-1">
+                    <div className="double-bezel-outer p-1 rounded-2xl bg-slate-200/60 inline-flex shadow-soft-xs">
+                        <div className="double-bezel-inner flex items-center p-0.5 rounded-[calc(1rem-0.125rem)] bg-white/80 backdrop-blur-sm">
+                            <button
+                                type="button"
+                                onClick={() => handleTabChange("groups")}
+                                className={`relative px-4 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
+                                    activeTab === "groups"
+                                        ? "bg-slate-900 text-white shadow-soft-sm"
+                                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/60"
+                                }`}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                    <circle cx="9" cy="7" r="4" />
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                </svg>
+                                <span>{MSG.GROUP.INVITATIONS.TAB_GROUPS}</span>
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                                    activeTab === "groups" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700"
+                                }`}>
+                                    {groups.length}
+                                </span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => handleTabChange("invitations")}
+                                className={`relative px-4 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
+                                    activeTab === "invitations"
+                                        ? "bg-slate-900 text-white shadow-soft-sm"
+                                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/60"
+                                }`}
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0" />
+                                </svg>
+                                <span>{MSG.GROUP.INVITATIONS.TAB_INVITATIONS}</span>
+                                {pendingInvitationsCount > 0 && (
+                                    <span className="relative flex h-5 items-center justify-center rounded-full bg-emerald-500 px-2 text-[10px] font-bold text-white shadow-sm">
+                                        <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                                            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                                        </span>
+                                        {pendingInvitationsCount}
+                                    </span>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {activeTab === "invitations" ? (
+                    <InvitationsTab
+                        onInvitationAccepted={fetchGroups}
+                        onPendingCountChange={setPendingInvitationsCount}
+                    />
+                ) : (
+                    <>
+                        {/* Top Section: Quota Limit Warning & Creation Omni-Box */}
+                        <div className="space-y-4">
                     {limits.maxGroupsCount !== null && (
                         <div
                             className={`double-bezel-outer p-1 rounded-3xl transition-all duration-300 ${
@@ -414,6 +536,20 @@ const GroupsPage = () => {
                                                                     </svg>
                                                                 </button>
                                                             )}
+                                                            {!creatorIsMe && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleStartLeave(group)}
+                                                                    title={MSG.GROUP.BTN_LEAVE}
+                                                                    className="p-2 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition"
+                                                                >
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                                                        <polyline points="16 17 21 12 16 7" />
+                                                                        <line x1="21" y1="12" x2="9" y2="12" />
+                                                                    </svg>
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -541,7 +677,7 @@ const GroupsPage = () => {
                                                         <span>{MSG.GROUP.BTN_RENAME}</span>
                                                     </button>
                                                 )}
-                                                {creatorIsMe && (
+                                                {creatorIsMe ? (
                                                     <button
                                                         type="button"
                                                         onClick={() => handleStartDelete(group)}
@@ -553,6 +689,19 @@ const GroupsPage = () => {
                                                         </svg>
                                                         <span>{MSG.GROUP.BTN_DELETE}</span>
                                                     </button>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleStartLeave(group)}
+                                                        className="min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium hover:bg-amber-100 transition"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                                            <polyline points="16 17 21 12 16 7" />
+                                                            <line x1="21" y1="12" x2="9" y2="12" />
+                                                        </svg>
+                                                        <span>{MSG.GROUP.BTN_LEAVE}</span>
+                                                    </button>
                                                 )}
                                             </div>
                                         </div>
@@ -562,7 +711,9 @@ const GroupsPage = () => {
                         )}
                     </div>
                 </div>
-            </div>
+            </>
+        )}
+    </div>
 
             {/* High-End Double-Bezel Modal: Delete Group Confirmation */}
             {showDeleteConfirm && typeof document !== 'undefined' && createPortal(
@@ -626,6 +777,71 @@ const GroupsPage = () => {
                                         {actionLoading ? "Đang xóa..." : MSG.GROUP.BTN_CONFIRM_DELETE}
                                     </button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* High-End Double-Bezel Modal: Leave Group Confirmation */}
+            {showLeaveConfirm && leaveGroupTarget && typeof document !== 'undefined' && createPortal(
+                <div
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) handleCancelLeave();
+                    }}
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xl animate-fade-in"
+                >
+                    <div className="double-bezel-outer p-2 rounded-[2rem] w-full max-w-md bg-white/10 ring-1 ring-white/20 shadow-2xl">
+                        <div className="double-bezel-inner p-6 sm:p-7 bg-white rounded-[calc(2rem-0.5rem)] space-y-5 text-left">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                        <polyline points="16 17 21 12 16 7" />
+                                        <line x1="21" y1="12" x2="9" y2="12" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900 tracking-tight">
+                                        {MSG.GROUP.LEAVE_CONFIRM_TITLE}
+                                    </h3>
+                                    <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                                        {leaveGroupTarget.name}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <p className="text-sm text-slate-600 leading-relaxed">
+                                {MSG.GROUP.LEAVE_CONFIRM_DESC(leaveGroupTarget.name)}
+                            </p>
+
+                            <div className="flex items-center justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={handleCancelLeave}
+                                    disabled={actionLoading}
+                                    className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
+                                >
+                                    {MSG.GROUP.BTN_CANCEL}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleConfirmLeave}
+                                    disabled={actionLoading}
+                                    className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-soft-xs active:scale-[0.98] transition disabled:opacity-50 flex items-center gap-1.5"
+                                >
+                                    {actionLoading ? (
+                                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                            <polyline points="16 17 21 12 16 7" />
+                                            <line x1="21" y1="12" x2="9" y2="12" />
+                                        </svg>
+                                    )}
+                                    <span>{MSG.GROUP.BTN_CONFIRM_LEAVE}</span>
+                                </button>
                             </div>
                         </div>
                     </div>
