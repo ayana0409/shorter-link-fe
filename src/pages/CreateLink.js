@@ -628,6 +628,7 @@ const CreateLink = () => {
                 <button
                   type="button"
                   onClick={copyToClipboard}
+                  aria-label="Sao chép liên kết rút gọn"
                   className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-xs font-semibold text-white shadow-soft-xs transition-all hover:bg-emerald-700 active:scale-95"
                 >
                   {copied ? (
@@ -650,6 +651,7 @@ const CreateLink = () => {
                   type="button"
                   onClick={() => window.open(shortLink, '_blank')}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors shadow-2xs"
+                  aria-label="Mở liên kết trong tab mới"
                   title="Mở liên kết"
                 >
                   ↗
@@ -799,6 +801,7 @@ const CreateLink = () => {
                                 <button
                                   type="button"
                                   onClick={() => copyDirectLink(getShortLinkUrl(link))}
+                                  aria-label="Sao chép liên kết"
                                   className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] text-slate-600 hover:bg-slate-100 transition shadow-2xs"
                                 >
                                   {MSG.SHORTENER.BTN_COPY}
@@ -852,6 +855,7 @@ const CreateLink = () => {
                                   type="button"
                                   onClick={() => toggleLinkStatus(link)}
                                   disabled={isLinkExpired(link)}
+                                  aria-label={link.status === 'disabled' ? "Kích hoạt liên kết" : "Tạm ngưng liên kết"}
                                   className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                                     isLinkExpired(link)
                                       ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
@@ -867,6 +871,7 @@ const CreateLink = () => {
                                   type="button"
                                   onClick={() => setActiveQrLinkId(activeQrLinkId === link._id ? "" : link._id)}
                                   disabled={isLinkExpired(link) || link.status === 'disabled'}
+                                  aria-label={activeQrLinkId === link._id ? "Ẩn mã QR" : "Hiện mã QR"}
                                   className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-50 transition disabled:opacity-50"
                                 >
                                   {activeQrLinkId === link._id ? MSG.SHORTENER.BTN_HIDE_QR : MSG.SHORTENER.BTN_QR}
@@ -880,6 +885,7 @@ const CreateLink = () => {
                                       setNewLinkPassword("");
                                       setConfirmNewLinkPassword("");
                                     }}
+                                    aria-label="Đổi mật khẩu liên kết"
                                     className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-50 transition"
                                   >
                                     🔑
@@ -1010,7 +1016,8 @@ const CreateLink = () => {
                         <button
                           type="button"
                           onClick={() => copyDirectLink(getShortLinkUrl(link))}
-                          className="shrink-0 rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 active:bg-slate-100"
+                          aria-label="Sao chép liên kết"
+                          className="shrink-0 rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 active:bg-slate-100 min-h-[36px]"
                         >
                           {MSG.SHORTENER.BTN_COPY}
                         </button>
@@ -1030,6 +1037,7 @@ const CreateLink = () => {
                             type="button"
                             onClick={() => toggleLinkStatus(link)}
                             disabled={isLinkExpired(link)}
+                            aria-label={link.status === 'disabled' ? "Kích hoạt liên kết" : "Tạm ngưng liên kết"}
                             className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 active:scale-95 disabled:opacity-50 min-h-[36px]"
                           >
                             {link.status === 'disabled' ? MSG.SHORTENER.BTN_ENABLE : MSG.SHORTENER.BTN_DISABLE}
@@ -1038,6 +1046,7 @@ const CreateLink = () => {
                             type="button"
                             onClick={() => setActiveQrLinkId(activeQrLinkId === link._id ? "" : link._id)}
                             disabled={isLinkExpired(link) || link.status === 'disabled'}
+                            aria-label={activeQrLinkId === link._id ? "Ẩn mã QR" : "Hiện mã QR"}
                             className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 active:scale-95 disabled:opacity-50 min-h-[36px]"
                           >
                             {activeQrLinkId === link._id ? "Ẩn QR" : "QR"}

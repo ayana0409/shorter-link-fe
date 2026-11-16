@@ -12,7 +12,7 @@ import NotificationBell from './NotificationBell';
 const navItems = [
     { label: 'Trang chủ', to: '/home', roles: ['user', 'admin', 'manager'] },
     { label: 'Nhóm làm việc', to: '/groups', roles: ['user', 'admin', 'manager'] },
-    { label: 'Biểu đồ', to: '/admin', roles: ['admin'] },
+    { label: 'Tổng quan', to: '/admin', roles: ['admin'] },
     {
         label: 'Quản lý',
         roles: ['admin', 'manager'],
@@ -152,6 +152,8 @@ const Navbar = () => {
                                     >
                                         <button
                                             type="button"
+                                            aria-haspopup="true"
+                                            aria-expanded={isOpen}
                                             onClick={() => {
                                                 if (dropdownTimeoutRef.current) clearTimeout(dropdownTimeoutRef.current);
                                                 setOpenDropdown(isOpen ? null : index);
@@ -275,7 +277,8 @@ const Navbar = () => {
                             type="button"
                             className="relative flex h-9 w-9 items-center justify-center rounded-full border border-slate-200/80 bg-slate-100/60 text-slate-700 transition md:hidden active:scale-90"
                             onClick={() => setMenuOpen((prev) => !prev)}
-                            aria-label="Toggle Navigation Menu"
+                            aria-expanded={menuOpen}
+                            aria-label={menuOpen ? "Đóng menu điều hướng" : "Mở menu điều hướng"}
                         >
                             <span className="sr-only">Toggle navigation</span>
                             <div className="relative flex h-4 w-4 flex-col justify-between">
@@ -301,7 +304,12 @@ const Navbar = () => {
 
                 {/* Mobile Drawer (Card Overlay below Floating Nav) */}
                 {menuOpen && (
-                    <div className="mt-2.5 overflow-hidden rounded-3xl border border-slate-200/90 bg-white/95 p-4 shadow-soft-xl backdrop-blur-2xl md:hidden animate-in fade-in slide-in-from-top-3 duration-200">
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Menu điều hướng di động"
+                        className="mt-2.5 overflow-hidden rounded-3xl border border-slate-200/90 bg-white/95 p-4 shadow-soft-xl backdrop-blur-2xl md:hidden animate-in fade-in slide-in-from-top-3 duration-200"
+                    >
                         {/* User Profile Card on Mobile */}
                         {loggedIn && (
                             <div className="mb-3 flex items-center justify-between rounded-2xl bg-slate-50 border border-slate-100 p-3">

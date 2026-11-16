@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { get, post, put, remove } from "../../utils/request";
 import PageWrapper from "../../components/PageWrapper";
@@ -6,6 +7,11 @@ import toast from "react-hot-toast";
 import { getTokenPayload } from "../../constants/localStorage";
 import { MSG } from "../../constants/messages";
 
+/**
+ * GroupsPage Component
+ * High-end minimalist agency redesign for group collaboration management.
+ * Features dual-mode presentation (Desktop Table + Mobile Bento Cards) to eliminate horizontal scrolling.
+ */
 const GroupsPage = () => {
     const [groups, setGroups] = useState([]);
     const [groupName, setGroupName] = useState("");
@@ -26,7 +32,7 @@ const GroupsPage = () => {
         setLoading(true);
         try {
             const data = await get("groups");
-            setGroups(data);
+            setGroups(Array.isArray(data) ? data : []);
         } catch (error) {
             toast.error(MSG.GROUP.ERR_LOAD_LIST);
         } finally {
@@ -36,12 +42,27 @@ const GroupsPage = () => {
 
     useEffect(() => {
         fetchGroups();
-        get('account/limits')
+        get("account/limits")
             .then((data) => setLimits(data))
             .catch(() => null);
     }, []);
 
-    const handleCreateGroup = async () => {
+    // Handle ESC key and body scroll lock for delete confirmation modal
+    useEffect(() => {
+        if (!showDeleteConfirm) return;
+        const handleKeyDown = (e) => {
+            if (e.key === "Escape") handleCancelDelete();
+        };
+        document.body.style.overflow = "hidden";
+        window.addEventListener("keydown", handleKeyDown);
+        return () => {
+            document.body.style.overflow = "";
+            window.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [showDeleteConfirm]);
+
+    const handleCreateGroup = async (e) => {
+        if (e) e.preventDefault();
         if (!groupName.trim()) {
             toast.error(MSG.GROUP.ERR_EMPTY_NAME);
             return;
@@ -64,7 +85,7 @@ const GroupsPage = () => {
     const isGroupCreator = (group) => group?.owner?._id === userId || group?.owner === userId;
 
     const formatDate = (value) => {
-        if (!value) return "-";
+        if (!value) return "—";
         return new Date(value).toLocaleDateString("vi-VN", {
             day: "2-digit",
             month: "2-digit",
@@ -132,191 +153,484 @@ const GroupsPage = () => {
         }
     };
 
+    const isLimitReached = limits.maxGroupsCount !== null && groups.length >= limits.maxGroupsCount;
+
     return (
         <PageWrapper
             title={MSG.GROUP.PAGE_TITLE}
             subtitle={MSG.GROUP.PAGE_SUBTITLE}
-            actions={
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <div className="flex w-full max-w-xs items-center gap-2 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-2 shadow-sm shadow-slate-200/50">
-                        <input
-                            value={groupName}
-                            onChange={(event) => setGroupName(event.target.value)}
-                            placeholder={MSG.GROUP.LABEL_NEW_GROUP}
-                            disabled={limits.maxGroupsCount !== null && groups.length >= limits.maxGroupsCount}
-                            className="w-full bg-transparent text-sm text-slate-900 outline-none disabled:cursor-not-allowed disabled:opacity-60"
-                        />
-                    </div>
-                    <button
-                        type="button"
-                        onClick={handleCreateGroup}
-                        disabled={actionLoading || (limits.maxGroupsCount !== null && groups.length >= limits.maxGroupsCount)}
-                        className="inline-flex items-center justify-center rounded-3xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        {limits.maxGroupsCount !== null && groups.length >= limits.maxGroupsCount ? MSG.GROUP.BTN_CREATE_LIMIT_REACHED : MSG.GROUP.BTN_CREATE}
-                    </button>
-                </div>
-            }
         >
-            {limits.maxGroupsCount !== null && (
-                <div className={`rounded-3xl border p-4 mb-4 ${groups.length >= limits.maxGroupsCount ? 'border-amber-300 bg-amber-50' : 'border-blue-200 bg-blue-50'}`}>
-                    <div className="flex flex-wrap items-center gap-4 text-sm">
-                        <span className="font-semibold">{MSG.GROUP.LIMIT_LABEL}</span>
-                        <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ${groups.length >= limits.maxGroupsCount ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                            📁 {MSG.GROUP.LIMIT_COUNT(groups.length, limits.maxGroupsCount)}
-                        </span>
-                        {groups.length >= limits.maxGroupsCount && (
-                            <span className="text-amber-700 font-medium">{MSG.GROUP.LIMIT_WARNING}</span>
+            <div className="space-y-6 max-w-6xl mx-auto">
+                {/* Top Section: Quota Limit Warning & Creation Omni-Box */}
+                <div className="space-y-4">
+                    {limits.maxGroupsCount !== null && (
+                        <div
+                            className={`double-bezel-outer p-1 rounded-3xl transition-all duration-300 ${
+                                isLimitReached
+                                    ? "bg-amber-500/10 ring-1 ring-amber-500/20"
+                                    : "bg-blue-500/5 ring-1 ring-blue-500/10"
+                            }`}
+                        >
+                            <div className="double-bezel-inner px-5 py-3.5 bg-white/90 backdrop-blur-md rounded-[calc(1.5rem-0.25rem)] flex flex-wrap items-center justify-between gap-3 text-sm">
+                                <div className="flex items-center gap-3">
+                                    <div
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                                            isLimitReached
+                                                ? "bg-amber-100 text-amber-700"
+                                                : "bg-blue-50 text-blue-600"
+                                        }`}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <span className="font-semibold text-slate-800">{MSG.GROUP.LIMIT_LABEL}</span>
+                                        <span className="text-slate-500 ml-2 font-mono text-xs">
+                                            ({MSG.GROUP.LIMIT_COUNT(groups.length, limits.maxGroupsCount)})
+                                        </span>
+                                    </div>
+                                </div>
+                                {isLimitReached && (
+                                    <span className="text-xs font-semibold px-3 py-1 rounded-full bg-amber-100 text-amber-800">
+                                        {MSG.GROUP.LIMIT_WARNING}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Omni-Box Create Group */}
+                    <form onSubmit={handleCreateGroup} className="double-bezel-outer p-1.5 rounded-3xl bg-slate-200/50">
+                        <div className="double-bezel-inner p-2 sm:p-2.5 bg-white rounded-[calc(1.5rem-0.375rem)] shadow-soft-sm flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                            <div className="flex-1 flex items-center px-4 py-2 text-slate-900">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 mr-3 shrink-0">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                    <circle cx="9" cy="7" r="4" />
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                </svg>
+                                <input
+                                    type="text"
+                                    value={groupName}
+                                    onChange={(event) => setGroupName(event.target.value)}
+                                    placeholder={MSG.GROUP.LABEL_NEW_GROUP}
+                                    disabled={actionLoading || isLimitReached}
+                                    className="w-full bg-transparent text-sm sm:text-base text-slate-900 placeholder:text-slate-400 outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={actionLoading || isLimitReached || !groupName.trim()}
+                                className="group relative inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl sm:rounded-full bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-sm font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-soft-xs"
+                            >
+                                <span>{isLimitReached ? MSG.GROUP.BTN_CREATE_LIMIT_REACHED : MSG.GROUP.BTN_CREATE}</span>
+                                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19" />
+                                        <line x1="5" y1="12" x2="19" y2="12" />
+                                    </svg>
+                                </div>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                {/* Groups Directory Container */}
+                <div className="double-bezel-outer p-1.5 rounded-[2rem] bg-slate-200/50">
+                    <div className="double-bezel-inner p-5 sm:p-7 bg-white rounded-[calc(2rem-0.375rem)] shadow-soft-md space-y-6">
+                        {/* Section Header */}
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-5 border-b border-slate-100">
+                            <div>
+                                <h2 className="text-xl font-bold tracking-tight text-slate-900">{MSG.GROUP.LIST_TITLE}</h2>
+                                <p className="text-sm text-slate-500 mt-0.5">{MSG.GROUP.LIST_DESC}</p>
+                            </div>
+                            <span className="font-mono text-xs px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 font-medium self-start sm:self-auto">
+                                {groups.length} nhóm
+                            </span>
+                        </div>
+
+                        {/* Loading State */}
+                        {loading && (
+                            <div className="py-16 text-center text-slate-400 space-y-3">
+                                <div className="w-8 h-8 mx-auto border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                                <p className="text-sm font-medium">{MSG.COMMON?.LOADING || "Đang tải dữ liệu..."}</p>
+                            </div>
+                        )}
+
+                        {/* Empty State */}
+                        {!loading && groups.length === 0 && (
+                            <div className="py-16 text-center space-y-4">
+                                <div className="w-16 h-16 mx-auto rounded-3xl bg-slate-50 flex items-center justify-center text-slate-400 ring-1 ring-slate-100">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-slate-800 text-base">{MSG.GROUP.NO_GROUPS}</h3>
+                                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                                        Hãy tạo nhóm làm việc đầu tiên để chia sẻ và quản trị liên kết cùng đồng nghiệp.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Desktop View: Studio Data Table (hidden on mobile) */}
+                        {!loading && groups.length > 0 && (
+                            <div className="hidden md:block overflow-x-auto">
+                                <table className="w-full text-left text-sm text-slate-600">
+                                    <thead>
+                                        <tr className="border-b border-slate-100 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                                            <th className="pb-3.5 pl-2">{MSG.GROUP.COL_NAME}</th>
+                                            <th className="pb-3.5 px-3 text-center">{MSG.GROUP.COL_MEMBERS}</th>
+                                            <th className="pb-3.5 px-3 text-center">{MSG.GROUP.COL_LINKS}</th>
+                                            <th className="pb-3.5 px-3">{MSG.GROUP.COL_OWNER}</th>
+                                            <th className="pb-3.5 px-3 font-mono">{MSG.GROUP.COL_DATE}</th>
+                                            <th className="pb-3.5 pr-2 text-right">{MSG.GROUP.COL_ACTION}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        {groups.map((group) => {
+                                            const creator = group.owner?.username || group.owner || "—";
+                                            const creatorIsMe = isGroupCreator(group);
+                                            const isRenaming = renameGroupId === group._id;
+
+                                            return (
+                                                <tr key={group._id} className="group hover:bg-slate-50/70 transition-colors duration-150">
+                                                    {/* Group Name Column */}
+                                                    <td className="py-4 pl-2 font-medium text-slate-900 max-w-xs">
+                                                        {isRenaming ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <input
+                                                                    type="text"
+                                                                    value={renameGroupName}
+                                                                    onChange={(e) => setRenameGroupName(e.target.value)}
+                                                                    className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                                                    autoFocus
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleSaveRename(group._id)}
+                                                                    disabled={renameLoading}
+                                                                    className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition"
+                                                                >
+                                                                    {MSG.GROUP.BTN_SAVE}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleCancelRename}
+                                                                    className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium transition"
+                                                                >
+                                                                    {MSG.GROUP.BTN_CANCEL}
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center gap-2.5">
+                                                                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs uppercase shrink-0">
+                                                                    {group.name?.slice(0, 2) || "GP"}
+                                                                </div>
+                                                                <span className="font-semibold text-slate-900 truncate" title={group.name}>
+                                                                    {group.name}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </td>
+
+                                                    {/* Members Count */}
+                                                    <td className="py-4 px-3 text-center">
+                                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-mono text-xs font-semibold">
+                                                            {group.members?.length ?? 0}
+                                                        </span>
+                                                    </td>
+
+                                                    {/* Links Count */}
+                                                    <td className="py-4 px-3 text-center">
+                                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-mono text-xs font-semibold">
+                                                            {group.links?.length ?? 0}
+                                                        </span>
+                                                    </td>
+
+                                                    {/* Owner */}
+                                                    <td className="py-4 px-3 text-slate-700">
+                                                        <span className="truncate max-w-[120px] inline-block font-medium">
+                                                            {creator}
+                                                        </span>
+                                                        {creatorIsMe && (
+                                                            <span className="ml-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-semibold">
+                                                                Tôi
+                                                            </span>
+                                                        )}
+                                                    </td>
+
+                                                    {/* Creation Date */}
+                                                    <td className="py-4 px-3 font-mono text-xs text-slate-500">
+                                                        {formatDate(group.createdAt)}
+                                                    </td>
+
+                                                    {/* Action Buttons */}
+                                                    <td className="py-4 pr-2 text-right">
+                                                        <div className="flex items-center justify-end gap-1.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => navigate(`/groups/${group._id}/members`)}
+                                                                className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition"
+                                                            >
+                                                                {MSG.GROUP.BTN_MEMBERS}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => navigate(`/groups/${group._id}/links`)}
+                                                                className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition"
+                                                            >
+                                                                {MSG.GROUP.BTN_LINKS}
+                                                            </button>
+                                                            {creatorIsMe && !isRenaming && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleStartRename(group)}
+                                                                    title={MSG.GROUP.BTN_RENAME}
+                                                                    className="p-2 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition"
+                                                                >
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                        <path d="M12 20h9" />
+                                                                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                                                                    </svg>
+                                                                </button>
+                                                            )}
+                                                            {creatorIsMe && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleStartDelete(group)}
+                                                                    title={MSG.GROUP.BTN_DELETE}
+                                                                    className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                                                                >
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                        <path d="M3 6h18" />
+                                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                                                                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                                    </svg>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {/* Mobile Cards View: Bento Cards Stack (Zero Horizontal Scroll on mobile) */}
+                        {!loading && groups.length > 0 && (
+                            <div className="block md:hidden space-y-3.5">
+                                {groups.map((group) => {
+                                    const creator = group.owner?.username || group.owner || "—";
+                                    const creatorIsMe = isGroupCreator(group);
+                                    const isRenaming = renameGroupId === group._id;
+
+                                    return (
+                                        <div
+                                            key={group._id}
+                                            className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition space-y-3.5"
+                                        >
+                                            {/* Header */}
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="w-10 h-10 rounded-2xl bg-blue-100/70 text-blue-700 flex items-center justify-center font-bold text-sm uppercase shrink-0">
+                                                        {group.name?.slice(0, 2) || "GP"}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        {isRenaming ? (
+                                                            <div className="flex flex-col gap-2 pt-1">
+                                                                <input
+                                                                    type="text"
+                                                                    value={renameGroupName}
+                                                                    onChange={(e) => setRenameGroupName(e.target.value)}
+                                                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+                                                                />
+                                                                <div className="flex gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleSaveRename(group._id)}
+                                                                        disabled={renameLoading}
+                                                                        className="px-3 py-1.5 rounded-xl bg-amber-600 text-white text-xs font-semibold"
+                                                                    >
+                                                                        {MSG.GROUP.BTN_SAVE}
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={handleCancelRename}
+                                                                        className="px-3 py-1.5 rounded-xl bg-slate-200 text-slate-700 text-xs font-medium"
+                                                                    >
+                                                                        {MSG.GROUP.BTN_CANCEL}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div>
+                                                                <h3 className="font-bold text-slate-900 text-base truncate">
+                                                                    {group.name}
+                                                                </h3>
+                                                                <p className="text-xs text-slate-500 mt-0.5 truncate">
+                                                                    Tạo bởi: <span className="font-medium text-slate-700">{creator}</span>
+                                                                    {creatorIsMe && " (Bạn)"}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <span className="font-mono text-[11px] px-2.5 py-1 rounded-full bg-white border border-slate-100 text-slate-500 shrink-0">
+                                                    {formatDate(group.createdAt)}
+                                                </span>
+                                            </div>
+
+                                            {/* Metrics Pill Grid */}
+                                            <div className="grid grid-cols-2 gap-2 text-xs">
+                                                <div className="p-2.5 rounded-xl bg-white border border-slate-100 flex items-center justify-between">
+                                                    <span className="text-slate-500 font-medium">{MSG.GROUP.COL_MEMBERS}</span>
+                                                    <span className="font-bold font-mono text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">
+                                                        {group.members?.length ?? 0}
+                                                    </span>
+                                                </div>
+                                                <div className="p-2.5 rounded-xl bg-white border border-slate-100 flex items-center justify-between">
+                                                    <span className="text-slate-500 font-medium">{MSG.GROUP.COL_LINKS}</span>
+                                                    <span className="font-bold font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">
+                                                        {group.links?.length ?? 0}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Action Buttons Matrix */}
+                                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => navigate(`/groups/${group._id}/members`)}
+                                                    className="min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                                        <circle cx="9" cy="7" r="4" />
+                                                    </svg>
+                                                    <span>{MSG.GROUP.BTN_MEMBERS}</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => navigate(`/groups/${group._id}/links`)}
+                                                    className="min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                                    </svg>
+                                                    <span>{MSG.GROUP.BTN_LINKS}</span>
+                                                </button>
+                                                {creatorIsMe && !isRenaming && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleStartRename(group)}
+                                                        className="min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-50 transition"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M12 20h9" />
+                                                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                                                        </svg>
+                                                        <span>{MSG.GROUP.BTN_RENAME}</span>
+                                                    </button>
+                                                )}
+                                                {creatorIsMe && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleStartDelete(group)}
+                                                        className="min-h-[44px] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-medium hover:bg-rose-100 transition"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M3 6h18" />
+                                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                                                        </svg>
+                                                        <span>{MSG.GROUP.BTN_DELETE}</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         )}
                     </div>
                 </div>
-            )}
+            </div>
 
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                    <div>
-                        <h2 className="text-xl font-semibold text-slate-900">{MSG.GROUP.LIST_TITLE}</h2>
-                        <p className="mt-1 text-sm text-slate-600">{MSG.GROUP.LIST_DESC}</p>
-                    </div>
-                </div>
+            {/* High-End Double-Bezel Modal: Delete Group Confirmation */}
+            {showDeleteConfirm && typeof document !== 'undefined' && createPortal(
+                <div
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget) handleCancelDelete();
+                    }}
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xl animate-fade-in"
+                >
+                    <div className="double-bezel-outer p-2 rounded-[2rem] w-full max-w-md bg-white/10 ring-1 ring-white/20 shadow-2xl">
+                        <div className="double-bezel-inner p-6 sm:p-7 bg-white rounded-[calc(2rem-0.5rem)] space-y-5 text-left">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M3 6h18" />
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                                        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                        <line x1="10" y1="11" x2="10" y2="17" />
+                                        <line x1="14" y1="11" x2="14" y2="17" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900">{MSG.GROUP.DELETE_CONFIRM_TITLE}</h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">Thao tác này không thể hoàn tác</p>
+                                </div>
+                            </div>
 
-                <div className="overflow-x-auto">
-                    <table className="min-w-full text-left text-sm text-slate-700">
-                        <thead>
-                            <tr className="border-b border-slate-200 text-slate-900">
-                                <th className="px-3 py-3">{MSG.GROUP.COL_NAME}</th>
-                                <th className="px-3 py-3">{MSG.GROUP.COL_MEMBERS}</th>
-                                <th className="px-3 py-3">{MSG.GROUP.COL_LINKS}</th>
-                                <th className="px-3 py-3">{MSG.GROUP.COL_OWNER}</th>
-                                <th className="px-3 py-3">{MSG.GROUP.COL_DATE}</th>
-                                <th className="px-3 py-3">{MSG.GROUP.COL_ACTION}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {!groups.length && !loading ? (
-                                <tr>
-                                    <td colSpan="6" className="px-3 py-6 text-center text-slate-500">
-                                        {MSG.GROUP.NO_GROUPS}
-                                    </td>
-                                </tr>
-                            ) : (
-                                groups.map((group) => {
-                                    const creator = group.owner?.username || group.owner || "-";
-                                    const creatorIsMe = isGroupCreator(group);
-                                    const groupNameContent = renameGroupId === group._id ? (
-                                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                                            <input
-                                                value={renameGroupName}
-                                                onChange={(event) => setRenameGroupName(event.target.value)}
-                                                className="min-w-0 rounded-3xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => handleSaveRename(group._id)}
-                                                disabled={renameLoading}
-                                                className="rounded-2xl bg-amber-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                            >
-                                                {MSG.GROUP.BTN_SAVE}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={handleCancelRename}
-                                                className="rounded-2xl bg-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
-                                            >
-                                                {MSG.GROUP.BTN_CANCEL}
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        group.name
-                                    );
+                            <p className="text-sm text-slate-600 leading-relaxed">
+                                {MSG.GROUP.DELETE_CONFIRM_DESC(deleteGroupName)}
+                            </p>
 
-                                    return (
-                                        <tr key={group._id} className="border-b border-slate-100">
-                                            <td className="px-3 py-4 font-medium text-slate-900">{groupNameContent}</td>
-                                            <td className="px-3 py-4">{group.members?.length ?? 0}</td>
-                                            <td className="px-3 py-4">{group.links?.length ?? 0}</td>
-                                            <td className="px-3 py-4">{creator}</td>
-                                            <td className="px-3 py-4">{formatDate(group.createdAt)}</td>
-                                            <td className="px-3 py-4">
-                                                <div className="flex flex-wrap gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => navigate(`/groups/${group._id}/members`)}
-                                                        className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-                                                    >
-                                                        {MSG.GROUP.BTN_MEMBERS}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => navigate(`/groups/${group._id}/links`)}
-                                                        className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-                                                    >
-                                                        {MSG.GROUP.BTN_LINKS}
-                                                    </button>
-                                                    {creatorIsMe && renameGroupId !== group._id && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleStartRename(group)}
-                                                            className="rounded-2xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700"
-                                                        >
-                                                            {MSG.GROUP.BTN_RENAME}
-                                                        </button>
-                                                    )}
-                                                    {creatorIsMe && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleStartDelete(group)}
-                                                            className="rounded-2xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-600"
-                                                        >
-                                                            {MSG.GROUP.BTN_DELETE}
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                            <div className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                        Mật khẩu xác nhận
+                                    </label>
+                                    <input
+                                        type="password"
+                                        value={deletePassword}
+                                        onChange={(event) => setDeletePassword(event.target.value)}
+                                        placeholder={MSG.GROUP.DELETE_PASSWORD_PLACEHOLDER}
+                                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-rose-500 focus:bg-white focus:ring-2 focus:ring-rose-100 transition"
+                                        autoFocus
+                                    />
+                                </div>
 
-            {showDeleteConfirm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl">
-                        <h3 className="text-lg font-semibold text-slate-900">{MSG.GROUP.DELETE_CONFIRM_TITLE}</h3>
-                        <p className="mt-2 text-sm text-slate-600">
-                            {MSG.GROUP.DELETE_CONFIRM_DESC(deleteGroupName)}
-                        </p>
-                        <div className="mt-4 space-y-4">
-                            <input
-                                type="password"
-                                value={deletePassword}
-                                onChange={(event) => setDeletePassword(event.target.value)}
-                                placeholder={MSG.GROUP.DELETE_PASSWORD_PLACEHOLDER}
-                                className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                            />
-                            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                                <button
-                                    type="button"
-                                    onClick={handleCancelDelete}
-                                    className="rounded-3xl bg-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-300"
-                                >
-                                    {MSG.GROUP.BTN_CANCEL}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleConfirmDelete}
-                                    disabled={actionLoading}
-                                    className="rounded-3xl bg-rose-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    {MSG.GROUP.BTN_CONFIRM_DELETE}
-                                </button>
+                                <div className="grid grid-cols-2 gap-3 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleCancelDelete}
+                                        className="min-h-[44px] rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition"
+                                    >
+                                        {MSG.GROUP.BTN_CANCEL}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleConfirmDelete}
+                                        disabled={actionLoading || !deletePassword.trim()}
+                                        className="min-h-[44px] rounded-2xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed shadow-soft-xs"
+                                    >
+                                        {actionLoading ? "Đang xóa..." : MSG.GROUP.BTN_CONFIRM_DELETE}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </PageWrapper>
     );

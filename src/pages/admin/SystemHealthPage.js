@@ -6,26 +6,38 @@ import { getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
 import PageWrapper from '../../components/PageWrapper';
 import { MSG } from '../../constants/messages';
 
+/**
+ * Modern Status Badge with real-time pulsing dot
+ */
 const StatusBadge = ({ status }) => {
     const isHealthy = status === 'healthy' || status === 'connected' || status === 'ok';
     return (
         <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${isHealthy
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                : 'bg-red-50 text-red-700 border border-red-200'
-                }`}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                isHealthy
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+                    : 'bg-rose-50 text-rose-700 border border-rose-200/80'
+            }`}
         >
-            <span className={`h-2 w-2 rounded-full ${isHealthy ? 'bg-emerald-500' : 'bg-red-500'}`} />
-            {status}
+            <span className={`h-2 w-2 rounded-full ${isHealthy ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+            <span className="capitalize">{status}</span>
         </span>
     );
 };
 
-const InfoCard = ({ label, value, subValue }) => (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{label}</p>
-        <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
-        {subValue && <p className="mt-1 text-sm text-slate-500">{subValue}</p>}
+/**
+ * Bento InfoCard Component
+ */
+const InfoCard = ({ label, value, subValue, icon }) => (
+    <div className="double-bezel-outer p-1 rounded-2xl bg-slate-200/50">
+        <div className="double-bezel-inner p-4 bg-white rounded-[calc(1rem-0.25rem)] shadow-soft-xs space-y-1.5">
+            <div className="flex items-center justify-between text-slate-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider">{label}</span>
+                {icon && <span className="text-slate-400">{icon}</span>}
+            </div>
+            <p className="font-mono text-xl sm:text-2xl font-bold tracking-tight text-slate-900 truncate">{value}</p>
+            {subValue && <p className="text-xs text-slate-500 font-medium truncate">{subValue}</p>}
+        </div>
     </div>
 );
 
@@ -42,6 +54,10 @@ const formatUptime = (seconds) => {
     return parts.join(' ');
 };
 
+/**
+ * SystemHealthPage Component
+ * High-end Infrastructure & Cache Monitoring Center.
+ */
 const SystemHealthPage = () => {
     const [health, setHealth] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -107,263 +123,248 @@ const SystemHealthPage = () => {
             actions={
                 <div className="flex items-center gap-3">
                     {lastRefreshed && (
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-slate-500 font-mono hidden sm:inline">
                             {MSG.ADMIN.HEALTH.LAST_UPDATED} {lastRefreshed.toLocaleTimeString('vi-VN')}
                         </span>
                     )}
                     <button
                         onClick={fetchHealth}
                         disabled={loading}
-                        className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                        className="px-4 py-2 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-soft-xs transition flex items-center gap-1.5 disabled:opacity-50"
                     >
-                        {loading ? MSG.ADMIN.HEALTH.BTN_REFRESHING : MSG.ADMIN.HEALTH.BTN_REFRESH}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={loading ? "animate-spin" : ""}>
+                            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                        </svg>
+                        <span>{loading ? MSG.ADMIN.HEALTH.BTN_REFRESHING : MSG.ADMIN.HEALTH.BTN_REFRESH}</span>
                     </button>
                 </div>
             }
         >
-            {rateLimited && (
-                <div className="mb-6 rounded-3xl border border-amber-200 bg-amber-50 p-4 flex items-center gap-3">
-                    <span className="text-2xl">⏳</span>
-                    <div>
-                        <p className="text-sm font-medium text-amber-800">{MSG.ADMIN.HEALTH.RATE_LIMITED_TITLE}</p>
-                        <p className="text-xs text-amber-600">{MSG.ADMIN.HEALTH.RATE_LIMITED_DESC}</p>
-                    </div>
-                </div>
-            )}
-
-            {loading && !health ? (
-                <div className="flex items-center justify-center rounded-3xl border border-slate-200 bg-white p-12">
-                    <div className="flex flex-col items-center gap-3">
-                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-500" />
-                        <p className="text-sm text-slate-500">{MSG.ADMIN.HEALTH.LOADING_TEXT}</p>
-                    </div>
-                </div>
-            ) : health ? (
-                <div className="space-y-6">
-                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <div className="flex items-center justify-between">
+            <div className="space-y-6 max-w-6xl mx-auto">
+                {/* Rate Limited Notification Card (Replacing emoji with clean SVG Hourglass) */}
+                {rateLimited && (
+                    <div className="double-bezel-outer p-1.5 rounded-3xl bg-amber-500/10 ring-1 ring-amber-500/20">
+                        <div className="double-bezel-inner p-4 bg-white/95 backdrop-blur-md rounded-[calc(1.5rem-0.375rem)] flex items-center gap-3.5">
+                            <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M5 22h14" />
+                                    <path d="M5 2h14" />
+                                    <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" />
+                                    <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" />
+                                </svg>
+                            </div>
                             <div>
-                                <h2 className="text-lg font-semibold text-slate-900">{MSG.ADMIN.HEALTH.OVERALL_STATUS}</h2>
-                                <p className="mt-1 text-sm text-slate-500">{MSG.ADMIN.HEALTH.OVERALL_DESC}</p>
-                            </div>
-                            <StatusBadge status={health.status} />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        <InfoCard
-                            label={MSG.ADMIN.HEALTH.LABEL_DATABASE}
-                            value={health.database}
-                            subValue={health.database === 'connected' ? MSG.ADMIN.HEALTH.DB_CONNECTED : MSG.ADMIN.HEALTH.DB_DISCONNECTED}
-                        />
-                        <InfoCard
-                            label={MSG.ADMIN.HEALTH.LABEL_UPTIME}
-                            value={formatUptime(health.uptime)}
-                            subValue={MSG.ADMIN.HEALTH.MEMORY_SECONDS(health.uptime)}
-                        />
-                        <InfoCard
-                            label={MSG.ADMIN.HEALTH.LABEL_MEMORY}
-                            value={`${health.memory.used} / ${health.memory.total} MB`}
-                            subValue={MSG.ADMIN.HEALTH.MEMORY_PERCENT(Math.round((health.memory.used / health.memory.total) * 100))}
-                        />
-                        <InfoCard
-                            label={MSG.ADMIN.HEALTH.LABEL_RATE_LIMIT}
-                            value={`${health.rateLimit.limit} requests`}
-                            subValue={MSG.ADMIN.HEALTH.RATE_LIMIT_INFO(health.rateLimit.ttl / 1000)}
-                        />
-                        <InfoCard
-                            label={MSG.ADMIN.HEALTH.LABEL_CHECK_TIME}
-                            value={new Date(health.timestamp).toLocaleTimeString('vi-VN')}
-                            subValue={new Date(health.timestamp).toLocaleDateString('vi-VN')}
-                        />
-                        <InfoCard
-                            label={MSG.ADMIN.HEALTH.LABEL_REDIS}
-                            value={health.redis?.connected ? MSG.ADMIN.HEALTH.REDIS_CONNECTED : MSG.ADMIN.HEALTH.REDIS_DISCONNECTED}
-                            subValue={health.redis?.connected ? MSG.ADMIN.HEALTH.PENDING_COUNT(health.redis.pendingNotifications) : MSG.ADMIN.HEALTH.REDIS_DISCONNECTED}
-                        />
-                        <InfoCard
-                            label={MSG.ADMIN.HEALTH.LABEL_ACTIVE_SESSIONS || "Active Sessions"}
-                            value={health.activeSessions?.total ?? 0}
-                            subValue={MSG.ADMIN.HEALTH.ACTIVE_SESSIONS_SUB || "users online"}
-                        />
-                    </div>
-
-                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h3 className="text-sm font-semibold text-slate-900">{MSG.ADMIN.HEALTH.MEMORY_USAGE_TITLE}</h3>
-                        <div className="mt-4">
-                            <div className="flex items-center justify-between text-sm text-slate-600">
-                                <span>{MSG.ADMIN.HEALTH.HEAP_USED}</span>
-                                <span>{health.memory.used} MB</span>
-                            </div>
-                            <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-slate-100">
-                                <div
-                                    className={`h-full rounded-full transition-all duration-500 ${(health.memory.used / health.memory.total) > 0.8
-                                        ? 'bg-red-500'
-                                        : (health.memory.used / health.memory.total) > 0.6
-                                            ? 'bg-amber-500'
-                                            : 'bg-emerald-500'
-                                        }`}
-                                    style={{
-                                        width: `${Math.min((health.memory.used / health.memory.total) * 100, 100)}%`,
-                                    }}
-                                />
-                            </div>
-                            <div className="mt-1 flex items-center justify-between text-xs text-slate-400">
-                                <span>0 MB</span>
-                                <span>{health.memory.total} MB</span>
+                                <p className="text-sm font-bold text-amber-900">{MSG.ADMIN.HEALTH.RATE_LIMITED_TITLE}</p>
+                                <p className="text-xs text-amber-700 mt-0.5">{MSG.ADMIN.HEALTH.RATE_LIMITED_DESC}</p>
                             </div>
                         </div>
                     </div>
+                )}
 
-                    {/* ── Redis Cache & Notification Queue ── */}
-                    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-sm font-semibold text-slate-900">{MSG.ADMIN.HEALTH.REDIS_SECTION_TITLE}</h3>
-                                <p className="mt-1 text-xs text-slate-500">{MSG.ADMIN.HEALTH.REDIS_SECTION_DESC}</p>
-                            </div>
-                            <StatusBadge status={health.redis?.connected ? 'connected' : 'disconnected'} />
-                        </div>
-                        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                                <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{MSG.ADMIN.HEALTH.LABEL_REDIS}</p>
-                                <p className="mt-2 text-lg font-bold text-slate-900">
-                                    {health.redis?.connected ? MSG.ADMIN.HEALTH.REDIS_CONNECTED : MSG.ADMIN.HEALTH.REDIS_DISCONNECTED}
-                                </p>
-                            </div>
-                            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                                <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{MSG.ADMIN.HEALTH.LABEL_PENDING_NOTIFICATIONS}</p>
-                                <p className="mt-2 text-lg font-bold text-slate-900">
-                                    {health.redis?.pendingNotifications > 0
-                                        ? MSG.ADMIN.HEALTH.PENDING_COUNT(health.redis.pendingNotifications)
-                                        : MSG.ADMIN.HEALTH.NO_PENDING}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                            <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{MSG.ADMIN.HEALTH.QUEUE_STATUS}</p>
-                            {health.redis?.connected ? (
-                                <div className="mt-3 space-y-3">
-                                    <div className="flex items-center justify-between text-sm text-slate-700">
-                                        <span>{MSG.ADMIN.HEALTH.TOTAL_QUEUE_ITEMS || 'Tổng mục trong hàng đợi'}</span>
-                                        <span className="font-semibold">
-                                            {health.redis.queue?.total ?? health.redis.pendingNotifications}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm text-slate-700">
-                                        <span>{MSG.ADMIN.HEALTH.LIST_QUEUE_COUNT || 'Danh sách queue'}</span>
-                                        <span className="font-semibold">{health.redis.queue?.listCount ?? 0}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm text-slate-700">
-                                        <span>{MSG.ADMIN.HEALTH.DEDUP_QUEUE_COUNT || 'Queue dedup user offline'}</span>
-                                        <span className="font-semibold">{health.redis.queue?.dedupKeyCount ?? 0}</span>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="mt-2 flex items-center gap-2">
-                                    <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
-                                    <span className="text-sm text-slate-700">{MSG.ADMIN.HEALTH.REDIS_DISCONNECTED}</span>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* ── Cache Statistics ── */}
-                        {health.redis?.connected && health.redis?.cache && (
-                            <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4">
-                                <div className="flex items-center justify-between">
-                                    <p className="text-xs font-medium uppercase tracking-wider text-blue-600">{MSG.ADMIN.HEALTH.CACHE_STATS_TITLE}</p>
-                                    <button
-                                        onClick={flushCache}
-                                        disabled={flushingCache}
-                                        className="rounded-lg bg-red-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-red-700 disabled:opacity-50"
-                                    >
-                                        {flushingCache ? MSG.ADMIN.HEALTH.BTN_FLUSHING : MSG.ADMIN.HEALTH.BTN_FLUSH_CACHE}
-                                    </button>
-                                </div>
-                                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                                    <div className="rounded-xl bg-white p-3 border border-blue-100">
-                                        <p className="text-xs text-slate-500">{MSG.ADMIN.HEALTH.CACHE_TOTAL_KEYS}</p>
-                                        <p className="mt-1 text-lg font-bold text-slate-900">{health.redis.cache.totalKeys}</p>
-                                    </div>
-                                    <div className="rounded-xl bg-white p-3 border border-blue-100">
-                                        <p className="text-xs text-slate-500">{MSG.ADMIN.HEALTH.CACHE_MEMORY}</p>
-                                        <p className="mt-1 text-lg font-bold text-slate-900">{health.redis.cache.estimatedMemoryKB} KB</p>
-                                    </div>
-                                    <div className="rounded-xl bg-white p-3 border border-blue-100">
-                                        <p className="text-xs text-slate-500">{MSG.ADMIN.HEALTH.CACHE_SHORT_URL}</p>
-                                        <p className="mt-1 text-lg font-bold text-slate-900">{health.redis.cache.shortUrl.count}</p>
-                                    </div>
-                                    <div className="rounded-xl bg-white p-3 border border-blue-100">
-                                        <p className="text-xs text-slate-500">{MSG.ADMIN.HEALTH.CACHE_USER_PERM}</p>
-                                        <p className="mt-1 text-lg font-bold text-slate-900">{health.redis.cache.userPermissions.count}</p>
-                                    </div>
-                                    <div className="rounded-xl bg-white p-3 border border-blue-100">
-                                        <p className="text-xs text-slate-500">{MSG.ADMIN.HEALTH.CACHE_DAILY_COUNT}</p>
-                                        <p className="mt-1 text-lg font-bold text-slate-900">{health.redis.cache.dailyCount.count}</p>
-                                    </div>
-                                    <div className="rounded-xl bg-white p-3 border border-blue-100">
-                                        <p className="text-xs text-slate-500">{MSG.ADMIN.HEALTH.CACHE_CONFIG}</p>
-                                        <p className="mt-1 text-lg font-bold text-slate-900">{health.redis.cache.config.count}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
+                {/* Loading Skeleton */}
+                {loading && !health ? (
+                    <div className="py-24 text-center space-y-3">
+                        <div className="w-8 h-8 mx-auto border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                        <p className="text-xs font-medium text-slate-400">{MSG.ADMIN.HEALTH.LOADING_TEXT}</p>
                     </div>
-
-                    {/* ── Active Sessions ── */}
-                    {health.activeSessions && (
-                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <div className="flex items-center justify-between">
+                ) : health ? (
+                    <div className="space-y-6">
+                        {/* Overall System Status Banner */}
+                        <div className="double-bezel-outer p-1.5 rounded-3xl bg-slate-200/50">
+                            <div className="double-bezel-inner p-5 sm:p-6 bg-white rounded-[calc(1.5rem-0.375rem)] shadow-soft-sm flex items-center justify-between gap-4">
                                 <div>
-                                    <h3 className="text-sm font-semibold text-slate-900">
-                                        {MSG.ADMIN.HEALTH.ACTIVE_SESSIONS_TITLE || "Phiên đăng nhập hoạt động"}
-                                    </h3>
-                                    <p className="mt-1 text-xs text-slate-500">
-                                        {MSG.ADMIN.HEALTH.ACTIVE_SESSIONS_DESC || "Danh sách user có session đang active trên hệ thống"}
-                                    </p>
+                                    <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900">
+                                        {MSG.ADMIN.HEALTH.OVERALL_STATUS}
+                                    </h2>
+                                    <p className="text-xs text-slate-500 mt-0.5">{MSG.ADMIN.HEALTH.OVERALL_DESC}</p>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
-                                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                                        {health.activeSessions.total} online
+                                <StatusBadge status={health.status} />
+                            </div>
+                        </div>
+
+                        {/* Core Infrastructure Bento Grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                            <InfoCard
+                                label={MSG.ADMIN.HEALTH.LABEL_DATABASE}
+                                value={health.database}
+                                subValue={health.database === 'connected' ? MSG.ADMIN.HEALTH.DB_CONNECTED : MSG.ADMIN.HEALTH.DB_DISCONNECTED}
+                                icon={
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <ellipse cx="12" cy="5" rx="9" ry="3" />
+                                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                                    </svg>
+                                }
+                            />
+                            <InfoCard
+                                label={MSG.ADMIN.HEALTH.LABEL_UPTIME}
+                                value={formatUptime(health.uptime)}
+                                subValue={MSG.ADMIN.HEALTH.MEMORY_SECONDS(health.uptime)}
+                                icon={
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <polyline points="12 6 12 12 16 14" />
+                                    </svg>
+                                }
+                            />
+                            <InfoCard
+                                label={MSG.ADMIN.HEALTH.LABEL_MEMORY}
+                                value={`${health.memory.used} / ${health.memory.total} MB`}
+                                subValue={MSG.ADMIN.HEALTH.MEMORY_PERCENT(Math.round((health.memory.used / health.memory.total) * 100))}
+                                icon={
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect width="18" height="18" x="3" y="3" rx="2" />
+                                        <path d="M7 7h.01M17 7h.01M7 17h.01M17 17h.01" />
+                                    </svg>
+                                }
+                            />
+                            <InfoCard
+                                label={MSG.ADMIN.HEALTH.LABEL_RATE_LIMIT}
+                                value={`${health.rateLimit.limit} req`}
+                                subValue={MSG.ADMIN.HEALTH.RATE_LIMIT_INFO(health.rateLimit.ttl / 1000)}
+                                icon={
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                    </svg>
+                                }
+                            />
+                            <InfoCard
+                                label={MSG.ADMIN.HEALTH.LABEL_CHECK_TIME}
+                                value={new Date(health.timestamp).toLocaleTimeString('vi-VN')}
+                                subValue={new Date(health.timestamp).toLocaleDateString('vi-VN')}
+                                icon={
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+                                        <line x1="16" y1="2" x2="16" y2="6" />
+                                        <line x1="8" y1="2" x2="8" y2="6" />
+                                        <line x1="3" y1="10" x2="21" y2="10" />
+                                    </svg>
+                                }
+                            />
+                            <InfoCard
+                                label={MSG.ADMIN.HEALTH.LABEL_ACTIVE_SESSIONS || "Active Sessions"}
+                                value={health.activeSessions?.total ?? 0}
+                                subValue={MSG.ADMIN.HEALTH.ACTIVE_SESSIONS_SUB || "người dùng trực tuyến"}
+                                icon={
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                    </svg>
+                                }
+                            />
+                        </div>
+
+                        {/* Memory Heap Usage Progress Bar */}
+                        <div className="double-bezel-outer p-1.5 rounded-[2rem] bg-slate-200/50">
+                            <div className="double-bezel-inner p-5 sm:p-6 bg-white rounded-[calc(2rem-0.375rem)] shadow-soft-sm space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-700">
+                                        {MSG.ADMIN.HEALTH.MEMORY_USAGE_TITLE}
+                                    </h3>
+                                    <span className="font-mono text-xs font-semibold text-slate-600">
+                                        {health.memory.used} MB / {health.memory.total} MB
                                     </span>
                                 </div>
-                            </div>
-                            {health.activeSessions.users.length > 0 ? (
-                                <div className="mt-4 flex flex-wrap gap-2">
-                                    {health.activeSessions.users.map((username) => (
-                                        <span
-                                            key={username}
-                                            className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 border border-blue-200"
-                                        >
-                                            <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                                            </svg>
-                                            {username}
-                                        </span>
-                                    ))}
+
+                                <div className="h-3 w-full overflow-hidden rounded-full bg-slate-100 p-0.5">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-500 ${
+                                            health.memory.used / health.memory.total > 0.8
+                                                ? 'bg-rose-500'
+                                                : health.memory.used / health.memory.total > 0.6
+                                                ? 'bg-amber-500'
+                                                : 'bg-emerald-500'
+                                        }`}
+                                        style={{
+                                            width: `${Math.min((health.memory.used / health.memory.total) * 100, 100)}%`,
+                                        }}
+                                    />
                                 </div>
-                            ) : (
-                                <p className="mt-4 text-sm text-slate-500 italic">
-                                    {MSG.ADMIN.HEALTH.NO_ACTIVE_SESSIONS || "Không có session nào đang hoạt động"}
-                                </p>
-                            )}
+                                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
+                                    <span>0 MB</span>
+                                    <span>{health.memory.total} MB (Giới hạn cấp phát)</span>
+                                </div>
+                            </div>
                         </div>
-                    )}
-                </div>
-            ) : (
-                <div className="flex flex-col items-center justify-center rounded-3xl border border-red-200 bg-red-50 p-12">
-                    <div className="text-4xl mb-3">⚠️</div>
-                    <p className="text-lg font-medium text-red-700">{MSG.ADMIN.HEALTH.ERROR_TITLE}</p>
-                    <p className="mt-1 text-sm text-red-500">{MSG.ADMIN.HEALTH.ERROR_DESC}</p>
-                    <button
-                        onClick={fetchHealth}
-                        className="mt-4 rounded-2xl bg-red-600 px-6 py-2 text-sm font-medium text-white transition hover:bg-red-700"
-                    >
-                        {MSG.ADMIN.HEALTH.BTN_RETRY}
-                    </button>
-                </div>
-            )}
+
+                        {/* Redis Cache & Queue Operations Card */}
+                        <div className="double-bezel-outer p-1.5 rounded-[2rem] bg-slate-200/50">
+                            <div className="double-bezel-inner p-5 sm:p-7 bg-white rounded-[calc(2rem-0.375rem)] shadow-soft-md space-y-6">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-slate-900 tracking-tight">
+                                            {MSG.ADMIN.HEALTH.REDIS_SECTION_TITLE}
+                                        </h3>
+                                        <p className="text-xs text-slate-500 mt-0.5">
+                                            {MSG.ADMIN.HEALTH.REDIS_SECTION_DESC}
+                                        </p>
+                                    </div>
+                                    <StatusBadge status={health.redis?.connected ? 'connected' : 'disconnected'} />
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                            {MSG.ADMIN.HEALTH.LABEL_REDIS}
+                                        </span>
+                                        <p className="mt-1 font-mono text-lg font-bold text-slate-900">
+                                            {health.redis?.connected ? MSG.ADMIN.HEALTH.REDIS_CONNECTED : MSG.ADMIN.HEALTH.REDIS_DISCONNECTED}
+                                        </p>
+                                    </div>
+                                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                            {MSG.ADMIN.HEALTH.LABEL_PENDING_NOTIFICATIONS}
+                                        </span>
+                                        <p className="mt-1 font-mono text-lg font-bold text-slate-900">
+                                            {health.redis?.pendingNotifications > 0
+                                                ? MSG.ADMIN.HEALTH.PENDING_COUNT(health.redis.pendingNotifications)
+                                                : MSG.ADMIN.HEALTH.NO_PENDING}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Cache Statistics with Flush Button */}
+                                {health.redis?.connected && health.redis?.cache && (
+                                    <div className="p-5 rounded-2xl bg-blue-50/50 border border-blue-100/80 space-y-4">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <span className="text-xs font-bold uppercase tracking-wider text-blue-700">
+                                                {MSG.ADMIN.HEALTH.CACHE_STATS_TITLE}
+                                            </span>
+                                            <button
+                                                onClick={flushCache}
+                                                disabled={flushingCache}
+                                                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white text-xs font-semibold shadow-soft-xs transition disabled:opacity-50 flex items-center justify-center gap-1.5 self-start sm:self-auto"
+                                            >
+                                                {flushingCache && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                                                <span>{flushingCache ? MSG.ADMIN.HEALTH.BTN_FLUSHING : MSG.ADMIN.HEALTH.BTN_FLUSH_CACHE}</span>
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                            <div className="p-3 rounded-xl bg-white border border-blue-100">
+                                                <p className="text-[11px] text-slate-500">{MSG.ADMIN.HEALTH.CACHE_TOTAL_KEYS}</p>
+                                                <p className="mt-1 font-mono text-base font-bold text-slate-900">{health.redis.cache.totalKeys}</p>
+                                            </div>
+                                            <div className="p-3 rounded-xl bg-white border border-blue-100">
+                                                <p className="text-[11px] text-slate-500">{MSG.ADMIN.HEALTH.CACHE_MEMORY}</p>
+                                                <p className="mt-1 font-mono text-base font-bold text-slate-900">{health.redis.cache.estimatedMemoryKB} KB</p>
+                                            </div>
+                                            <div className="p-3 rounded-xl bg-white border border-blue-100">
+                                                <p className="text-[11px] text-slate-500">{MSG.ADMIN.HEALTH.CACHE_SHORT_URL}</p>
+                                                <p className="mt-1 font-mono text-base font-bold text-slate-900">{health.redis.cache.shortUrl?.count ?? 0}</p>
+                                            </div>
+                                            <div className="p-3 rounded-xl bg-white border border-blue-100">
+                                                <p className="text-[11px] text-slate-500">{MSG.ADMIN.HEALTH.CACHE_USER_PERM}</p>
+                                                <p className="mt-1 font-mono text-base font-bold text-slate-900">{health.redis.cache.userPermissions?.count ?? 0}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
+            </div>
         </PageWrapper>
     );
 };

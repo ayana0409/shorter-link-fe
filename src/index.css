@@ -22,6 +22,17 @@
   code, kbd, samp, pre {
     font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
+
+  /* Universal keyboard navigation focus ring */
+  :focus-visible {
+    outline: 2px solid rgba(59, 130, 246, 0.6);
+    outline-offset: 2px;
+  }
+
+  /* Touch response & tap optimization */
+  button, a, input, select {
+    touch-action: manipulation;
+  }
 }
 
 /* Double-Bezel (Doppelrand) Architecture */

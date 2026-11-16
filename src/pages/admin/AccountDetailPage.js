@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { get, patch, remove } from '../../utils/request';
 import toast from 'react-hot-toast';
 import { getTokenPayload, getTokenRole, getTokenWithExpiry } from '../../constants/localStorage';
@@ -18,6 +18,11 @@ const getClientUrl = () => {
 };
 const clientUrl = getClientUrl();
 
+/**
+ * AccountDetailPage Component
+ * High-end user profile inspector & link management center.
+ * Features Dual Mode for link lists (Desktop Studio Table + Mobile Cards).
+ */
 const AccountDetailPage = () => {
     const { id } = useParams();
     const [account, setAccount] = useState(null);
@@ -38,7 +43,6 @@ const AccountDetailPage = () => {
     const [activeQrLinkId, setActiveQrLinkId] = useState('');
     const pageSize = 5;
     const navigate = useNavigate();
-    const location = useLocation();
 
     const refreshLinks = (
         page = 1,
@@ -60,9 +64,7 @@ const AccountDetailPage = () => {
         get(`account/admin/${id}?${params.toString()}`)
             .then((response) => {
                 setAccount(response.account);
-                const linksList = Array.isArray(response?.links)
-                    ? response.links
-                    : [];
+                const linksList = Array.isArray(response?.links) ? response.links : [];
                 const totalPagesFromResponse = Number(response?.totalPages) || 1;
                 const nextPage = Math.min(Math.max(Number(response?.page) || pageNumber, 1), totalPagesFromResponse);
 
@@ -124,9 +126,7 @@ const AccountDetailPage = () => {
     };
 
     const toggleAccountStatus = () => {
-        if (!account) {
-            return;
-        }
+        if (!account) return;
         const currentUser = getTokenPayload();
         if (currentUser?._id === account._id || currentUser?.username === account.username) {
             toast.error(MSG.ACCOUNT.ERR_SELF_LOCK);
@@ -155,10 +155,9 @@ const AccountDetailPage = () => {
             navigate('/not-found', { replace: true });
             return;
         }
-
-        refreshLinks(1);
+        refreshLinks();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [id, navigate, location.pathname]);
+    }, [id, navigate]);
 
     useEffect(() => {
         if (account) {
@@ -170,32 +169,39 @@ const AccountDetailPage = () => {
         }
     }, [account]);
 
-    const getLinkStatus = (link) => {
-        if (link.status === 'disabled') {
-            return MSG.ACCOUNT.STATUS_DELETED;
-        }
-
-        const expiresAt = link.expiresAt ? new Date(link.expiresAt) : null;
-        if (expiresAt && expiresAt < new Date()) {
-            return MSG.ACCOUNT.STATUS_EXPIRED;
-        }
-
-        return MSG.ACCOUNT.STATUS_VALID;
-    };
-
     const isLinkExpired = (link) => {
-        const expiresAt = link.expiresAt ? new Date(link.expiresAt) : null;
-        return expiresAt ? expiresAt < new Date() : false;
+        if (link.noExpiration) return false;
+        if (!link.expiresAt) return false;
+        return new Date(link.expiresAt) < new Date();
     };
 
-    const getShortLinkUrl = (link) => `${clientUrl}/s/${link.shortUrl}`;
+    const getLinkStatus = (link) => {
+        if (link.status === 'disabled') return MSG.ACCOUNT.STATUS_DISABLED;
+        if (isLinkExpired(link)) return MSG.ACCOUNT.STATUS_EXPIRED;
+        return MSG.ACCOUNT.STATUS_ACTIVE_LINK;
+    };
 
-    const toggleLinkStatus = (link) => {
-        if (isLinkExpired(link)) {
-            toast.error(MSG.ACCOUNT.ERR_EXPIRED_TOGGLE);
+    const updateLinkPassword = (linkId) => {
+        if (newLinkPassword !== confirmNewLinkPassword) {
+            toast.error(MSG.ACCOUNT.ERR_PASSWORD_MISMATCH);
             return;
         }
 
+        patch(`shortener/${linkId}`, { password: newLinkPassword || null })
+            .then(() => {
+                toast.success(MSG.ACCOUNT.SUCCESS_UPDATE_PASSWORD);
+                setEditingPasswordLinkId('');
+                setNewLinkPassword('');
+                setConfirmNewLinkPassword('');
+                refreshLinks(currentPage);
+            })
+            .catch((error) => {
+                const message = error.response?.data?.error?.message || MSG.ACCOUNT.ERR_UPDATE_PASSWORD;
+                toast.error(message);
+            });
+    };
+
+    const toggleLinkStatus = (link) => {
         const nextStatus = link.status === 'disabled' ? 'active' : 'disabled';
         patch(`shortener/${link._id || link.id}`, { status: nextStatus })
             .then(() => {
@@ -209,6 +215,7 @@ const AccountDetailPage = () => {
     };
 
     const deleteLink = (linkId) => {
+        if (!window.confirm("Bạn có chắc chắn muốn xóa liên kết này không?")) return;
         remove(`shortener/${linkId}`)
             .then(() => {
                 toast.success(MSG.ACCOUNT.SUCCESS_DELETE_LINK);
@@ -220,353 +227,529 @@ const AccountDetailPage = () => {
             });
     };
 
-    const paginatedLinks = links;
-
     if (!account) {
         return (
             <PageWrapper
                 title={MSG.ACCOUNT.DETAIL_PAGE_TITLE}
                 subtitle={MSG.ACCOUNT.DETAIL_PAGE_SUBTITLE}
             >
-                <div className="mx-auto max-w-lg rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm shadow-slate-300/10">
-                    {MSG.ACCOUNT.DETAIL_LOADING}
+                <div className="py-24 text-center space-y-3">
+                    <div className="w-8 h-8 mx-auto border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-xs font-medium text-slate-400">{MSG.ACCOUNT.DETAIL_LOADING}</p>
                 </div>
             </PageWrapper>
         );
     }
 
+    const initials = (account.username?.slice(0, 2) || 'US').toUpperCase();
+
     return (
         <PageWrapper
             title={MSG.ACCOUNT.DETAIL_PAGE_TITLE}
             subtitle={MSG.ACCOUNT.DETAIL_PAGE_SUBTITLE}
-        >
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
-                <div className="mb-6">
-                    <div>
-                        <h2 className="text-2xl font-semibold text-slate-900">{MSG.ACCOUNT.DETAIL_TITLE}</h2>
-                        <p className="mt-2 text-sm text-slate-600">{MSG.ACCOUNT.DETAIL_DESC}</p>
-                    </div>
+            actions={
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => navigate('/admin/accounts')}
+                        className="px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
+                    >
+                        {MSG.ADMIN.ACCOUNT.PAGE_TITLE}
+                    </button>
+                    <Link
+                        to={`/admin/${id}/groups`}
+                        className="px-4 py-2 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition"
+                    >
+                        {MSG.ADMIN.ACCOUNT.BTN_VIEW_GROUPS}
+                    </Link>
                 </div>
+            }
+        >
+            <div className="space-y-6 max-w-6xl mx-auto">
+                {/* Account Profile Header Bento */}
+                <div className="double-bezel-outer p-1.5 rounded-3xl bg-slate-200/50">
+                    <div className="double-bezel-inner p-5 sm:p-7 bg-white rounded-[calc(1.5rem-0.375rem)] shadow-soft-sm flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-slate-200 to-slate-100 text-slate-800 flex items-center justify-center font-bold text-lg shadow-inner ring-1 ring-slate-200/50">
+                                {initials}
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <h2 className="text-xl font-bold text-slate-900 tracking-tight">{account.username}</h2>
+                                    <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold capitalize">
+                                        {account.role}
+                                    </span>
+                                    <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold">
+                                        {account.level ? account.level.name : MSG.ACCOUNT.LEVEL_FREE}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-1">{account.fullname || 'Chưa đặt họ tên'}</p>
+                            </div>
+                        </div>
 
-                <div className="mb-6 rounded-3xl border border-slate-200 bg-slate-50 p-6">
-                    <h3 className="text-xl font-semibold text-slate-900 mb-3">{MSG.ACCOUNT.DETAIL_ACCOUNT_TITLE}</h3>
-                    <div className="grid gap-3 md:grid-cols-3">
-                        <p><span className="font-semibold">{MSG.ACCOUNT.LABEL_USERNAME}</span> {account.username}</p>
-                        <p><span className="font-semibold">{MSG.ACCOUNT.LABEL_FULLNAME}</span> {account.fullname}</p>
-                        <p><span className="font-semibold">{MSG.ACCOUNT.LABEL_ROLE}</span> {account.role}</p>
-                        <p className="md:col-span-3 flex items-center gap-3">
-                            <span className="font-semibold">{MSG.ACCOUNT.LABEL_STATUS}</span>
-                            <span className={account.isActive ? 'inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700' : 'inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700'}>
-                                {account.isActive ? MSG.ACCOUNT.STATUS_ACTIVE : MSG.ACCOUNT.STATUS_LOCKED}
-                            </span>
-                        </p>
-                        <p className="md:col-span-3 flex items-center gap-3">
-                            <span className="font-semibold">{MSG.ACCOUNT.LABEL_LOCK_ACCOUNT}</span>
-                            <label className="inline-flex cursor-pointer items-center gap-3 rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-sm transition hover:bg-slate-200 disabled:opacity-50">
-                                <span>{account.isActive ? MSG.ACCOUNT.TOGGLE_ON : MSG.ACCOUNT.TOGGLE_OFF}</span>
+                        {/* Status Toggle Switch */}
+                        <div className="flex items-center gap-3 self-start sm:self-auto p-2.5 rounded-2xl bg-slate-50 border border-slate-100">
+                            <div className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${account.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                                <span className="text-xs font-bold text-slate-700">
+                                    {account.isActive ? MSG.ACCOUNT.STATUS_ACTIVE : MSG.ACCOUNT.STATUS_LOCKED}
+                                </span>
+                            </div>
+                            <label className="relative inline-flex cursor-pointer items-center">
                                 <input
                                     type="checkbox"
                                     checked={account.isActive}
                                     disabled={isStatusUpdating || getTokenPayload()?._id === account._id || getTokenPayload()?.username === account.username}
                                     onChange={toggleAccountStatus}
-                                    className="h-5 w-10 rounded-full border border-slate-300 bg-white text-blue-600 transition duration-150 ease-in-out checked:bg-blue-500"
+                                    className="peer sr-only"
                                 />
+                                <div className="w-10 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600" />
                             </label>
-                        </p>
+                        </div>
                     </div>
                 </div>
 
-                <div className="mb-6 rounded-3xl border border-slate-200 bg-slate-50 p-6">
-                    <div className="mb-4">
-                        <h3 className="text-xl font-semibold text-slate-900">{MSG.ACCOUNT.EDIT_TITLE}</h3>
-                        <p className="text-sm text-slate-600">{MSG.ACCOUNT.EDIT_DESC}</p>
-                    </div>
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr]">
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.ACCOUNT.EDIT_LABEL_FULLNAME}</label>
-                            <input
-                                type="text"
-                                value={editAccount.fullname}
-                                onChange={(e) => setEditAccount({ ...editAccount, fullname: e.target.value })}
-                                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                            />
+                {/* Edit Account Settings Form Card */}
+                <div className="double-bezel-outer p-1.5 rounded-3xl bg-slate-200/50">
+                    <div className="double-bezel-inner p-5 sm:p-7 bg-white rounded-[calc(1.5rem-0.375rem)] shadow-soft-sm space-y-5">
+                        <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-base font-bold text-slate-900">{MSG.ACCOUNT.EDIT_TITLE}</h3>
+                                <p className="text-xs text-slate-500 mt-0.5">{MSG.ACCOUNT.EDIT_DESC}</p>
+                            </div>
                         </div>
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.ACCOUNT.EDIT_LABEL_ROLE}</label>
-                            <select
-                                value={editAccount.role}
-                                onChange={(e) => setEditAccount({ ...editAccount, role: e.target.value })}
-                                disabled={getTokenRole() === 'manager'}
-                                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+
+                        <div className="grid gap-3.5 sm:grid-cols-2">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-600 mb-1">{MSG.ACCOUNT.EDIT_LABEL_FULLNAME}</label>
+                                <input
+                                    type="text"
+                                    value={editAccount.fullname}
+                                    onChange={(e) => setEditAccount({ ...editAccount, fullname: e.target.value })}
+                                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 transition"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-600 mb-1">{MSG.ACCOUNT.EDIT_LABEL_ROLE}</label>
+                                <select
+                                    value={editAccount.role}
+                                    onChange={(e) => setEditAccount({ ...editAccount, role: e.target.value })}
+                                    disabled={getTokenRole() === 'manager'}
+                                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 transition"
+                                >
+                                    <option value="user">User</option>
+                                    <option value="manager">Manager</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <div className="sm:col-span-2">
+                                <label className="block text-xs font-semibold text-slate-600 mb-1">{MSG.ACCOUNT.EDIT_LABEL_PASSWORD}</label>
+                                <input
+                                    type="password"
+                                    value={editAccount.password}
+                                    onChange={(e) => setEditAccount({ ...editAccount, password: e.target.value })}
+                                    placeholder={MSG.ACCOUNT.EDIT_PASSWORD_PLACEHOLDER}
+                                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 transition"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-100">
+                            <button
+                                type="button"
+                                onClick={saveAccountChanges}
+                                disabled={isSaving}
+                                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-xs font-semibold shadow-soft-xs transition disabled:opacity-50"
                             >
-                                <option value="user">User</option>
-                                <option value="manager">Manager</option>
-                                <option value="admin">Admin</option>
-                            </select>
+                                {isSaving ? MSG.ACCOUNT.BTN_SAVING : MSG.ACCOUNT.BTN_SAVE}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={deleteAccount}
+                                disabled={isDeleting}
+                                className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-semibold transition disabled:opacity-50"
+                            >
+                                {isDeleting ? MSG.ACCOUNT.BTN_DELETING : MSG.ACCOUNT.BTN_DELETE}
+                            </button>
                         </div>
-                        <div className="md:col-span-2">
-                            <label className="mb-2 block text-sm font-medium text-slate-700">{MSG.ACCOUNT.EDIT_LABEL_PASSWORD}</label>
-                            <input
-                                type="password"
-                                value={editAccount.password}
-                                onChange={(e) => setEditAccount({ ...editAccount, password: e.target.value })}
-                                placeholder={MSG.ACCOUNT.EDIT_PASSWORD_PLACEHOLDER}
-                                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                            />
-                        </div>
-                    </div>
-                    <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-between">
-                        <button
-                            onClick={saveAccountChanges}
-                            disabled={isSaving}
-                            className={`rounded-2xl px-4 py-3 text-white shadow-md transition ${isSaving ? 'bg-slate-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}
-                        >
-                            {isSaving ? MSG.ACCOUNT.BTN_SAVING : MSG.ACCOUNT.BTN_SAVE}
-                        </button>
-                        <button
-                            onClick={deleteAccount}
-                            disabled={isDeleting}
-                            className={`rounded-2xl px-4 py-3 text-white shadow-md transition ${isDeleting ? 'bg-slate-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'}`}
-                        >
-                            {isDeleting ? MSG.ACCOUNT.BTN_DELETING : MSG.ACCOUNT.BTN_DELETE}
-                        </button>
-                        <Link
-                            to={`/admin/${id}/groups`}
-                            className="rounded-2xl bg-slate-900 px-4 py-3 text-white shadow-md transition hover:bg-slate-800"
-                        >
-                            {MSG.ADMIN.ACCOUNT.BTN_VIEW_GROUPS}
-                        </Link>
                     </div>
                 </div>
 
-                <div className="mb-6 flex flex-col gap-4">
-                    <div>
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => {
-                                const nextSearch = e.target.value;
-                                setSearchQuery(nextSearch);
-                                setCurrentPage(1);
-                                refreshLinks(1, nextSearch, statusFilter, sortBy, sortOrder);
-                            }}
-                            placeholder="Tìm kiếm theo tên web"
-                            className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        />
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-[auto_auto_auto_auto]">
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => {
-                                const nextStatus = e.target.value;
-                                setStatusFilter(nextStatus);
-                                setCurrentPage(1);
-                                refreshLinks(1, searchQuery, nextStatus, sortBy, sortOrder);
-                            }}
-                            className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        >
-                            <option value="all">{MSG.ACCOUNT.FILTER_ALL}</option>
-                            <option value="valid">{MSG.ACCOUNT.FILTER_VALID}</option>
-                            <option value="expired">{MSG.ACCOUNT.FILTER_EXPIRED}</option>
-                            <option value="disabled">{MSG.ACCOUNT.FILTER_DISABLED}</option>
-                        </select>
-                        <select
-                            value={sortBy}
-                            onChange={(e) => {
-                                const nextSortBy = e.target.value;
-                                setSortBy(nextSortBy);
-                                setCurrentPage(1);
-                                refreshLinks(1, searchQuery, statusFilter, nextSortBy, sortOrder);
-                            }}
-                            className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        >
-                            <option value="createdAt">{MSG.ACCOUNT.SORT_NEWEST}</option>
-                            <option value="siteName">{MSG.ACCOUNT.SORT_SITE_NAME}</option>
-                            <option value="clicks">{MSG.ACCOUNT.SORT_CLICKS}</option>
-                        </select>
-                        <select
-                            value={sortOrder}
-                            onChange={(e) => {
-                                const nextSortOrder = e.target.value;
-                                setSortOrder(nextSortOrder);
-                                setCurrentPage(1);
-                                refreshLinks(1, searchQuery, statusFilter, sortBy, nextSortOrder);
-                            }}
-                            className="rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                        >
-                            <option value="desc">{MSG.ACCOUNT.SORT_DESC}</option>
-                            <option value="asc">{MSG.ACCOUNT.SORT_ASC}</option>
-                        </select>
-                        <button
-                            onClick={() => refreshLinks(currentPage)}
-                            className="rounded-2xl bg-blue-500 px-4 py-3 text-white shadow-md shadow-blue-500/10 transition hover:bg-blue-600"
-                        >
-                            {MSG.ACCOUNT.BTN_REFRESH}
-                        </button>
-                    </div>
-                </div>
+                {/* Managed Links Section Container */}
+                <div className="double-bezel-outer p-1.5 rounded-[2rem] bg-slate-200/50">
+                    <div className="double-bezel-inner p-5 sm:p-7 bg-white rounded-[calc(2rem-0.375rem)] shadow-soft-md space-y-6">
+                        {/* Section Header & Search / Filter Toolbar */}
+                        <div className="space-y-4 pb-5 border-b border-slate-100">
+                            <div>
+                                <h3 className="text-xl font-bold tracking-tight text-slate-900">Danh sách Liên kết của Người dùng</h3>
+                                <p className="text-xs text-slate-500 mt-0.5">Quản lý và giám sát lưu lượng các liên kết do tài khoản này tạo</p>
+                            </div>
 
-                {links.length > 0 ? (
-                    <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-slate-50">
-                        <table className="min-w-full divide-y divide-slate-200 text-left text-sm text-slate-700">
-                            <thead className="bg-slate-100 text-slate-900">
-                                <tr>
-                                    <th className="px-4 py-3">{MSG.ACCOUNT.COL_SITE_NAME}</th>
-                                    <th className="px-4 py-3">{MSG.ACCOUNT.COL_SHORT_LINK}</th>
-                                    <th className="px-4 py-3">{MSG.ACCOUNT.COL_SECURITY}</th>
-                                    <th className="px-4 py-3">{MSG.ACCOUNT.COL_CLICKS}</th>
-                                    <th className="px-4 py-3">{MSG.ACCOUNT.COL_STATUS}</th>
-                                    <th className="px-4 py-3">{MSG.ACCOUNT.COL_EXPIRES}</th>
-                                    <th className="px-4 py-3">{MSG.ACCOUNT.COL_ACTION}</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-200 bg-white">
-                                {paginatedLinks.map((link) => (
-                                    <Fragment key={link._id || link.id}>
-                                        <tr className="hover:bg-slate-50">
-                                            <td className="px-4 py-3">
-                                                <span title={link.originalUrl} className="cursor-help underline decoration-dotted">
-                                                    {link.siteName ?? MSG.ACCOUNT.SITE_UNKNOWN}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3">{clientUrl}/s/{link.shortUrl}</td>
-                                            <td className="px-4 py-3">
-                                                <span className={link.passwordProtected ? 'inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-orange-700' : 'inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700'}>
-                                                    {link.passwordProtected ? MSG.ACCOUNT.SECURE_YES : MSG.ACCOUNT.SECURE_NO}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3">{link.clicks ?? 0}</td>
-                                            <td className="px-4 py-3">{getLinkStatus(link)}</td>
-                                            <td className="px-4 py-3">{link.expiresAt ? new Date(link.expiresAt).toLocaleString() : MSG.ACCOUNT.NO_EXPIRE}</td>
-                                            <td className="px-4 py-3 space-y-2 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-2">
-                                                <button
-                                                    onClick={() => toggleLinkStatus(link)}
-                                                    disabled={isLinkExpired(link)}
-                                                    className={`rounded-full px-3 py-1 text-sm font-medium transition ${isLinkExpired(link)
-                                                        ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                                                        : link.status === 'disabled'
-                                                            ? 'bg-emerald-500 text-white hover:bg-emerald-600'
-                                                            : 'bg-orange-500 text-white hover:bg-orange-600'}`}
-                                                >
-                                                    {link.status === 'disabled' ? MSG.ACCOUNT.BTN_ENABLE : MSG.ACCOUNT.BTN_DISABLE}
-                                                </button>
-                                                <button
-                                                    onClick={() => setActiveQrLinkId(activeQrLinkId === (link._id || link.id) ? '' : (link._id || link.id))}
-                                                    disabled={isLinkExpired(link) || link.status === 'disabled'}
-                                                    className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 hover:bg-slate-200 transition disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
-                                                >
-                                                    {activeQrLinkId === (link._id || link.id) ? MSG.ACCOUNT.BTN_HIDE_QR : MSG.ACCOUNT.BTN_QR}
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        if (editingPasswordLinkId === (link._id || link.id)) {
-                                                            setEditingPasswordLinkId('');
-                                                            setNewLinkPassword('');
-                                                            setConfirmNewLinkPassword('');
-                                                        } else {
-                                                            setEditingPasswordLinkId(link._id || link.id);
-                                                            setNewLinkPassword('');
-                                                            setConfirmNewLinkPassword('');
-                                                        }
-                                                    }}
-                                                    className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700 hover:bg-slate-200 transition"
-                                                >
-                                                    {editingPasswordLinkId === (link._id || link.id) ? MSG.ACCOUNT.BTN_CANCEL_PASSWORD : MSG.ACCOUNT.BTN_CHANGE_PASSWORD}
-                                                </button>
-                                                <button
-                                                    onClick={() => deleteLink(link._id || link.id)}
-                                                    className="rounded-full bg-red-500 px-3 py-1 text-sm text-white hover:bg-red-600 transition"
-                                                >
-                                                    {MSG.ACCOUNT.BTN_DELETE_LINK}
-                                                </button>
-                                                {editingPasswordLinkId === (link._id || link.id) && (
-                                                    <div className="flex w-full flex-col gap-3 rounded-3xl border border-slate-200 bg-slate-50 p-3">
-                                                        <input
-                                                            type="password"
-                                                            value={newLinkPassword}
-                                                            onChange={(e) => setNewLinkPassword(e.target.value)}
-                                                            placeholder={MSG.ACCOUNT.NEW_PASSWORD_PLACEHOLDER}
-                                                            className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
-                                                        />
-                                                        <input
-                                                            type="password"
-                                                            value={confirmNewLinkPassword}
-                                                            onChange={(e) => setConfirmNewLinkPassword(e.target.value)}
-                                                            placeholder={MSG.ACCOUNT.CONFIRM_PASSWORD_PLACEHOLDER}
-                                                            className="w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-slate-900 outline-none"
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                if (!newLinkPassword.trim() || !confirmNewLinkPassword.trim()) {
-                                                                    toast.error(MSG.ACCOUNT.ERROR_ENTER_PASSWORD_AND_CONFIRM);
-                                                                    return;
-                                                                }
-                                                                if (newLinkPassword !== confirmNewLinkPassword) {
-                                                                    toast.error(MSG.ACCOUNT.ERROR_PASSWORDS_DO_NOT_MATCH);
-                                                                    return;
-                                                                }
-                                                                patch(`shortener/${link._id || link.id}`, { password: newLinkPassword })
-                                                                    .then(() => {
-                                                                        toast.success(MSG.ACCOUNT.SUCCESS_PASSWORD_UPDATED);
-                                                                        setEditingPasswordLinkId('');
-                                                                        setNewLinkPassword('');
-                                                                        setConfirmNewLinkPassword('');
-                                                                        refreshLinks(currentPage);
-                                                                    })
-                                                                    .catch((error) => {
-                                                                        const message = error.response?.data?.message || MSG.ACCOUNT.ERROR_PASSWORD_UPDATE_FAILED;
-                                                                        toast.error(message);
-                                                                    });
-                                                            }}
-                                                            className="rounded-2xl bg-blue-500 px-3 py-2 text-white text-sm hover:bg-blue-600 transition"
-                                                        >
-                                                            {MSG.ACCOUNT.BTN_SAVE_PASSWORD}
-                                                        </button>
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                                <div className="flex-1 flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-slate-900 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 mr-2.5 shrink-0">
+                                        <circle cx="11" cy="11" r="8" />
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                    </svg>
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => {
+                                            const nextSearch = e.target.value;
+                                            setSearchQuery(nextSearch);
+                                            setCurrentPage(1);
+                                            refreshLinks(1, nextSearch, statusFilter, sortBy, sortOrder);
+                                        }}
+                                        placeholder="Tìm kiếm theo tên web..."
+                                        className="w-full bg-transparent text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none"
+                                    />
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <select
+                                        value={statusFilter}
+                                        onChange={(e) => {
+                                            const nextStatus = e.target.value;
+                                            setStatusFilter(nextStatus);
+                                            setCurrentPage(1);
+                                            refreshLinks(1, searchQuery, nextStatus, sortBy, sortOrder);
+                                        }}
+                                        className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 outline-none transition"
+                                    >
+                                        <option value="all">{MSG.ACCOUNT.FILTER_ALL}</option>
+                                        <option value="valid">{MSG.ACCOUNT.FILTER_VALID}</option>
+                                        <option value="expired">{MSG.ACCOUNT.FILTER_EXPIRED}</option>
+                                        <option value="disabled">{MSG.ACCOUNT.FILTER_DISABLED}</option>
+                                    </select>
+                                    <select
+                                        value={sortBy}
+                                        onChange={(e) => {
+                                            const nextSortBy = e.target.value;
+                                            setSortBy(nextSortBy);
+                                            setCurrentPage(1);
+                                            refreshLinks(1, searchQuery, statusFilter, nextSortBy, sortOrder);
+                                        }}
+                                        className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 outline-none transition"
+                                    >
+                                        <option value="createdAt">{MSG.ACCOUNT.SORT_NEWEST}</option>
+                                        <option value="siteName">{MSG.ACCOUNT.SORT_SITE_NAME}</option>
+                                        <option value="clicks">{MSG.ACCOUNT.SORT_CLICKS}</option>
+                                    </select>
+                                    <select
+                                        value={sortOrder}
+                                        onChange={(e) => {
+                                            const nextSortOrder = e.target.value;
+                                            setSortOrder(nextSortOrder);
+                                            setCurrentPage(1);
+                                            refreshLinks(1, searchQuery, statusFilter, sortBy, nextSortOrder);
+                                        }}
+                                        className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 outline-none transition"
+                                    >
+                                        <option value="desc">{MSG.ACCOUNT.SORT_DESC}</option>
+                                        <option value="asc">{MSG.ACCOUNT.SORT_ASC}</option>
+                                    </select>
+                                    <button
+                                        type="button"
+                                        onClick={() => refreshLinks(currentPage)}
+                                        title={MSG.ACCOUNT.BTN_REFRESH}
+                                        className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition shrink-0"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {links.length === 0 ? (
+                            <div className="py-12 text-center text-slate-400 text-xs">
+                                Người dùng này chưa tạo liên kết nào.
+                            </div>
+                        ) : (
+                            <>
+                                {/* Desktop View: Links Table */}
+                                <div className="hidden md:block overflow-x-auto">
+                                    <table className="w-full text-left text-sm text-slate-600">
+                                        <thead>
+                                            <tr className="border-b border-slate-100 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                                                <th className="pb-3.5 pl-2">{MSG.ACCOUNT.COL_SITE_NAME}</th>
+                                                <th className="pb-3.5 px-3">{MSG.ACCOUNT.COL_SHORT_LINK}</th>
+                                                <th className="pb-3.5 px-3">{MSG.ACCOUNT.COL_SECURITY}</th>
+                                                <th className="pb-3.5 px-3 font-mono">{MSG.ACCOUNT.COL_CLICKS}</th>
+                                                <th className="pb-3.5 px-3">{MSG.ACCOUNT.COL_STATUS}</th>
+                                                <th className="pb-3.5 px-3 font-mono">{MSG.ACCOUNT.COL_EXPIRES}</th>
+                                                <th className="pb-3.5 pr-2 text-right">{MSG.ACCOUNT.COL_ACTION}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {links.map((link) => {
+                                                const linkId = link._id || link.id;
+                                                const shortFullUrl = `${clientUrl}/s/${link.shortUrl}`;
+                                                const expired = isLinkExpired(link);
+
+                                                return (
+                                                    <Fragment key={linkId}>
+                                                        <tr className="hover:bg-slate-50/70 transition">
+                                                            <td className="py-4 pl-2 font-semibold text-slate-900 max-w-xs truncate" title={link.originalUrl}>
+                                                                {link.siteName ?? MSG.ACCOUNT.SITE_UNKNOWN}
+                                                            </td>
+                                                            <td className="py-4 px-3 font-mono text-xs text-blue-600">
+                                                                <a href={shortFullUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                                                    {link.shortUrl}
+                                                                </a>
+                                                            </td>
+                                                            <td className="py-4 px-3">
+                                                                {link.passwordProtected ? (
+                                                                    <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold inline-flex items-center gap-1">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                                            <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                                                                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                                                        </svg>
+                                                                        Có
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-slate-400 text-xs">Không</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="py-4 px-3 font-mono text-xs font-semibold text-slate-700">
+                                                                {link.clicks ?? 0}
+                                                            </td>
+                                                            <td className="py-4 px-3">
+                                                                <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+                                                                    link.status === 'disabled'
+                                                                        ? 'bg-slate-100 text-slate-600'
+                                                                        : expired
+                                                                        ? 'bg-rose-50 text-rose-700'
+                                                                        : 'bg-emerald-50 text-emerald-700'
+                                                                }`}>
+                                                                    {getLinkStatus(link)}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-4 px-3 font-mono text-xs text-slate-500">
+                                                                {link.expiresAt ? new Date(link.expiresAt).toLocaleDateString('vi-VN') : MSG.ACCOUNT.NO_EXPIRE}
+                                                            </td>
+                                                            <td className="py-4 pr-2 text-right">
+                                                                <div className="flex items-center justify-end gap-1.5">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => toggleLinkStatus(link)}
+                                                                        disabled={expired}
+                                                                        className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                                                                            expired
+                                                                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                                                                : link.status === 'disabled'
+                                                                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                                                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                                                        }`}
+                                                                    >
+                                                                        {link.status === 'disabled' ? MSG.ACCOUNT.BTN_ENABLE : MSG.ACCOUNT.BTN_DISABLE}
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setActiveQrLinkId(activeQrLinkId === linkId ? '' : linkId)}
+                                                                        disabled={expired || link.status === 'disabled'}
+                                                                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition"
+                                                                        title={MSG.ACCOUNT.BTN_QR}
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                            <rect width="5" height="5" x="3" y="3" rx="1" />
+                                                                            <rect width="5" height="5" x="16" y="3" rx="1" />
+                                                                            <rect width="5" height="5" x="3" y="16" rx="1" />
+                                                                            <path d="M21 16h-3a2 2 0 0 0-2 2v3" />
+                                                                            <path d="M21 21v.01" />
+                                                                            <path d="M12 7v3a2 2 0 0 1-2 2H7" />
+                                                                            <path d="M3 12h.01" />
+                                                                            <path d="M12 3h.01" />
+                                                                            <path d="M12 16v.01" />
+                                                                            <path d="M16 12h1" />
+                                                                            <path d="M21 12v.01" />
+                                                                            <path d="M12 21v-1" />
+                                                                        </svg>
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setEditingPasswordLinkId(editingPasswordLinkId === linkId ? '' : linkId)}
+                                                                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs transition"
+                                                                        title={MSG.ACCOUNT.BTN_CHANGE_PASSWORD}
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                            <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                                                                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                                                        </svg>
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => deleteLink(linkId)}
+                                                                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 text-xs transition"
+                                                                        title={MSG.ACCOUNT.BTN_DELETE_LINK}
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                            <path d="M3 6h18" />
+                                                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+
+                                                        {/* QR Code Drawer */}
+                                                        {activeQrLinkId === linkId && (
+                                                            <tr>
+                                                                <td colSpan="7" className="p-4 bg-slate-50/50">
+                                                                    <QrCodePreview shortUrl={link.shortUrl} />
+                                                                </td>
+                                                            </tr>
+                                                        )}
+
+                                                        {/* Edit Password Drawer */}
+                                                        {editingPasswordLinkId === linkId && (
+                                                            <tr>
+                                                                <td colSpan="7" className="p-4 bg-amber-50/30">
+                                                                    <div className="flex flex-wrap items-center gap-2">
+                                                                        <input
+                                                                            type="password"
+                                                                            value={newLinkPassword}
+                                                                            onChange={(e) => setNewLinkPassword(e.target.value)}
+                                                                            placeholder="Mật khẩu mới (bỏ trống để gỡ)"
+                                                                            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none focus:border-amber-500 font-mono"
+                                                                        />
+                                                                        <input
+                                                                            type="password"
+                                                                            value={confirmNewLinkPassword}
+                                                                            onChange={(e) => setConfirmNewLinkPassword(e.target.value)}
+                                                                            placeholder="Xác nhận mật khẩu mới"
+                                                                            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs outline-none focus:border-amber-500 font-mono"
+                                                                        />
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => updateLinkPassword(linkId)}
+                                                                            className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold"
+                                                                        >
+                                                                            {MSG.ACCOUNT.BTN_SAVE_PASSWORD}
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setEditingPasswordLinkId('')}
+                                                                            className="px-3 py-1.5 rounded-xl bg-slate-200 text-slate-700 text-xs font-medium"
+                                                                        >
+                                                                            {MSG.ACCOUNT.BTN_CANCEL_PASSWORD}
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                    </Fragment>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Mobile View: Link Cards Stack (Zero Horizontal Overflow on Mobile) */}
+                                <div className="block md:hidden space-y-3.5">
+                                    {links.map((link) => {
+                                        const linkId = link._id || link.id;
+                                        const shortFullUrl = `${clientUrl}/s/${link.shortUrl}`;
+                                        const expired = isLinkExpired(link);
+
+                                        return (
+                                            <div key={linkId} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-3">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div>
+                                                        <h4 className="font-bold text-slate-900 text-sm truncate max-w-[200px]" title={link.siteName}>
+                                                            {link.siteName ?? MSG.ACCOUNT.SITE_UNKNOWN}
+                                                        </h4>
+                                                        <a href={shortFullUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-blue-600 hover:underline block truncate mt-0.5">
+                                                            {link.shortUrl}
+                                                        </a>
+                                                    </div>
+                                                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                                                        link.status === 'disabled'
+                                                            ? 'bg-slate-100 text-slate-600'
+                                                            : expired
+                                                            ? 'bg-rose-50 text-rose-700'
+                                                            : 'bg-emerald-50 text-emerald-700'
+                                                    }`}>
+                                                        {getLinkStatus(link)}
+                                                    </span>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-200/60 font-mono">
+                                                    <div>Lượt click: <span className="font-bold text-slate-900">{link.clicks ?? 0}</span></div>
+                                                    <div>Hạn: <span className="text-slate-600">{link.expiresAt ? new Date(link.expiresAt).toLocaleDateString('vi-VN') : 'Vĩnh viễn'}</span></div>
+                                                </div>
+
+                                                <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-200/60 text-xs">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleLinkStatus(link)}
+                                                        disabled={expired}
+                                                        className="min-h-[40px] px-2 rounded-xl bg-slate-100 text-slate-700 font-semibold flex items-center justify-center text-center"
+                                                    >
+                                                        {link.status === 'disabled' ? 'Bật' : 'Tắt'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setActiveQrLinkId(activeQrLinkId === linkId ? '' : linkId)}
+                                                        className="min-h-[40px] px-2 rounded-xl bg-blue-50 text-blue-700 font-semibold flex items-center justify-center text-center"
+                                                    >
+                                                        Mã QR
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => deleteLink(linkId)}
+                                                        className="min-h-[40px] px-2 rounded-xl bg-rose-50 text-rose-600 font-semibold flex items-center justify-center text-center"
+                                                    >
+                                                        Xóa
+                                                    </button>
+                                                </div>
+
+                                                {/* Mobile Drawers */}
+                                                {activeQrLinkId === linkId && (
+                                                    <div className="p-3 bg-white rounded-xl border border-slate-200">
+                                                        <QrCodePreview shortUrl={link.shortUrl} />
                                                     </div>
                                                 )}
-                                            </td>
-                                        </tr>
-                                        {activeQrLinkId === (link._id || link.id) && (
-                                            <tr>
-                                                <td colSpan={7} className="px-4 py-4">
-                                                    <QrCodePreview url={getShortLinkUrl(link)} />
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </Fragment>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                ) : (
-                    <p className="text-center text-slate-500 py-8">{MSG.ACCOUNT.NO_LINKS}</p>
-                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        )}
 
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <button
-                        onClick={() => {
-                            const nextPage = Math.max(currentPage - 1, 1);
-                            setCurrentPage(nextPage);
-                            refreshLinks(nextPage);
-                        }}
-                        disabled={currentPage === 1}
-                        className="rounded-2xl bg-slate-200 px-4 py-3 text-slate-700 disabled:opacity-50"
-                    >
-                        {MSG.ACCOUNT.PAGE_PREV}
-                    </button>
-                    <div className="text-sm text-slate-700">Trang {currentPage} / {totalPages}</div>
-                    <button
-                        onClick={() => {
-                            const nextPage = Math.min(currentPage + 1, totalPages);
-                            setCurrentPage(nextPage);
-                            refreshLinks(nextPage);
-                        }}
-                        disabled={currentPage === totalPages}
-                        className="rounded-2xl bg-slate-200 px-4 py-3 text-slate-700 disabled:opacity-50"
-                    >
-                        {MSG.ACCOUNT.PAGE_NEXT}
-                    </button>
+                        {/* Pagination Segmented Controller */}
+                        {totalPages > 1 && (
+                            <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const prevPage = Math.max(currentPage - 1, 1);
+                                        setCurrentPage(prevPage);
+                                        refreshLinks(prevPage);
+                                    }}
+                                    disabled={currentPage === 1}
+                                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    {MSG.GROUP?.BTN_PREV || 'Trước'}
+                                </button>
+                                <span className="font-mono text-slate-500">
+                                    Trang {currentPage} / {totalPages}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const nextPage = Math.min(currentPage + 1, totalPages);
+                                        setCurrentPage(nextPage);
+                                        refreshLinks(nextPage);
+                                    }}
+                                    disabled={currentPage === totalPages}
+                                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    {MSG.GROUP?.BTN_NEXT || 'Sau'}
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </PageWrapper>

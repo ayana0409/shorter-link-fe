@@ -1,5 +1,4 @@
-import React from "react";
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { get, post, remove } from "../../utils/request";
 import PageWrapper from "../../components/PageWrapper";
@@ -7,7 +6,23 @@ import toast from "react-hot-toast";
 import { getTokenPayload } from "../../constants/localStorage";
 import { MSG } from "../../constants/messages";
 
-const MembersList = React.memo(({ members, memberRoleInputs, setMemberRoleInputs, isOwner, isAdmin, groupRole, userId, ownerId, actionLoading, handleUpdateMemberRole, handleRemoveMember }) => {
+/**
+ * MembersList Component
+ * Renders individual member cards with identity avatars, role switchers, and removal actions.
+ */
+const MembersList = React.memo(({
+    members,
+    memberRoleInputs,
+    setMemberRoleInputs,
+    isOwner,
+    isAdmin,
+    groupRole,
+    userId,
+    ownerId,
+    actionLoading,
+    handleUpdateMemberRole,
+    handleRemoveMember,
+}) => {
     return (
         <div className="space-y-3">
             {members.map((member) => {
@@ -16,44 +31,88 @@ const MembersList = React.memo(({ members, memberRoleInputs, setMemberRoleInputs
                 const isOwnerMember = accountId === ownerId;
                 const isCurrentUser = accountId === userId;
                 const canRemove = isOwner || isAdmin || (groupRole === "manager" && member.role === "member");
+                const displayName = account.username || account.fullname || (typeof account === "string" ? account : "Thành viên");
+                const initials = (displayName.slice(0, 2) || "MB").toUpperCase();
+
                 return (
-                    <div key={accountId} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
-                            <div>
-                                <p className="font-semibold text-slate-900">{account.username || account}</p>
-                                {account.fullname && <p className="text-sm text-slate-600">{account.fullname}</p>}
-                                <p className="mt-1 text-sm text-slate-500">{MSG.GROUP.ROLE_LABEL(member.role || "member")}</p>
-                            </div>
-                            <div className="flex flex-col gap-2 sm:items-end">
-                                {(isOwner || isAdmin) && !isOwnerMember && (
-                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                                        <select
-                                            value={memberRoleInputs[accountId] || member.role || "member"}
-                                            onChange={(event) => {
-                                                setMemberRoleInputs((prev) => ({
-                                                    ...prev,
-                                                    [accountId]: event.target.value,
-                                                }))
-                                                handleUpdateMemberRole(accountId)
-                                            }
-                                            }
-                                            className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-900 outline-none"
-                                        >
-                                            <option value="viewer">{MSG.GROUP.ROLE_VIEWER}</option>
-                                            <option value="member">{MSG.GROUP.ROLE_MEMBER}</option>
-                                            <option value="manager">{MSG.GROUP.ROLE_MANAGER}</option>
-                                        </select>
+                    <div
+                        key={accountId}
+                        className="p-4 sm:p-5 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors duration-200"
+                    >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            {/* Member Identity & Avatar */}
+                            <div className="flex items-center gap-3.5 min-w-0">
+                                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-slate-200 to-slate-100 text-slate-700 flex items-center justify-center font-bold text-sm tracking-wider shadow-inner shrink-0 ring-1 ring-slate-200/50">
+                                    {initials}
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-bold text-slate-900 text-sm sm:text-base truncate">
+                                            {account.username || account}
+                                        </p>
+                                        {isOwnerMember && (
+                                            <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-wider shrink-0">
+                                                Trưởng nhóm
+                                            </span>
+                                        )}
+                                        {isCurrentUser && (
+                                            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-wider shrink-0">
+                                                Bạn
+                                            </span>
+                                        )}
                                     </div>
+                                    {account.fullname && (
+                                        <p className="text-xs text-slate-500 truncate mt-0.5">{account.fullname}</p>
+                                    )}
+                                    <p className="text-xs text-slate-400 mt-0.5 font-medium">
+                                        {MSG.GROUP.ROLE_LABEL(member.role || "member")}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Member Role & Actions */}
+                            <div className="flex items-center justify-end gap-2.5 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                                {(isOwner || isAdmin) && !isOwnerMember ? (
+                                    <select
+                                        value={memberRoleInputs[accountId] || member.role || "member"}
+                                        onChange={(event) => {
+                                            const newRole = event.target.value;
+                                            setMemberRoleInputs((prev) => ({
+                                                ...prev,
+                                                [accountId]: newRole,
+                                            }));
+                                            handleUpdateMemberRole(accountId, newRole);
+                                        }}
+                                        disabled={actionLoading}
+                                        className="h-10 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 shadow-soft-xs transition"
+                                    >
+                                        <option value="viewer">{MSG.GROUP.ROLE_VIEWER}</option>
+                                        <option value="member">{MSG.GROUP.ROLE_MEMBER}</option>
+                                        <option value="manager">{MSG.GROUP.ROLE_MANAGER}</option>
+                                    </select>
+                                ) : (
+                                    <span className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-medium">
+                                        {member.role === "manager"
+                                            ? MSG.GROUP.ROLE_MANAGER
+                                            : member.role === "viewer"
+                                            ? MSG.GROUP.ROLE_VIEWER
+                                            : MSG.GROUP.ROLE_MEMBER}
+                                    </span>
                                 )}
+
                                 {canRemove && !isCurrentUser && (
                                     <button
                                         type="button"
                                         onClick={() => handleRemoveMember(accountId)}
                                         disabled={actionLoading}
-                                        placeholder={MSG.GROUP.BTN_REMOVE_MEMBER}
-                                        className="rounded-3xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-60"
+                                        title={MSG.GROUP.BTN_REMOVE_MEMBER}
+                                        className="min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 transition-all duration-200 disabled:opacity-50"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M3 6h18" />
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                        </svg>
                                     </button>
                                 )}
                             </div>
@@ -65,6 +124,10 @@ const MembersList = React.memo(({ members, memberRoleInputs, setMemberRoleInputs
     );
 });
 
+/**
+ * GroupMembersPage Component
+ * High-end minimalist agency redesign for group members management.
+ */
 const GroupMembersPage = () => {
     const { groupId } = useParams();
     const navigate = useNavigate();
@@ -143,7 +206,8 @@ const GroupMembersPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [groupId]);
 
-    const handleAddGroupMember = async () => {
+    const handleAddGroupMember = async (e) => {
+        if (e) e.preventDefault();
         if (!groupId) return;
         if (!memberUserId.trim()) {
             toast.error(MSG.GROUP.ERR_ADD_MEMBER_USERNAME);
@@ -160,16 +224,15 @@ const GroupMembersPage = () => {
             setMemberUserId("");
             toast.success(MSG.GROUP.SUCCESS_ADD_MEMBER);
         } catch (error) {
-            console.error(error);
             toast.error(error.response?.data?.error?.message || MSG.GROUP.ERR_ADD_MEMBER);
         } finally {
             setActionLoading(false);
         }
     };
 
-    const handleUpdateMemberRole = async (memberId) => {
+    const handleUpdateMemberRole = async (memberId, explicitRole) => {
         if (!groupId) return;
-        const role = memberRoleInputs[memberId] || "member";
+        const role = explicitRole || memberRoleInputs[memberId] || "member";
         setActionLoading(true);
         try {
             await post(`groups/${groupId}/members`, {
@@ -222,126 +285,164 @@ const GroupMembersPage = () => {
     const isOwner = groupRole === "owner";
     const ownerId = group?.owner?._id || group?.owner;
 
-    return groupRole === "viewer" ? (
-        <PageWrapper
-            title={MSG.GROUP.NO_ACCESS_TITLE}
-            subtitle={MSG.GROUP.NO_ACCESS_SUBTITLE}
-            actions={
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <button
-                        type="button"
-                        onClick={() => navigate("/groups")}
-                        className="rounded-3xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-                    >
-                        {MSG.GROUP.BTN_GROUP_LIST}
-                    </button>
-                    <Link
-                        to={`/groups/${groupId}/links`}
-                        className="inline-flex items-center justify-center rounded-3xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
-                    >
-                        {MSG.GROUP.BTN_VIEW_LINKS}
-                    </Link>
+    if (groupRole === "viewer") {
+        return (
+            <PageWrapper
+                title={MSG.GROUP.NO_ACCESS_TITLE}
+                subtitle={MSG.GROUP.NO_ACCESS_SUBTITLE}
+                actions={
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => navigate("/groups")}
+                            className="px-4 py-2 rounded-2xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition"
+                        >
+                            {MSG.GROUP.BTN_GROUP_LIST}
+                        </button>
+                        <Link
+                            to={`/groups/${groupId}/links`}
+                            className="px-4 py-2 rounded-2xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition"
+                        >
+                            {MSG.GROUP.BTN_VIEW_LINKS}
+                        </Link>
+                    </div>
+                }
+            >
+                <div className="double-bezel-outer p-2 rounded-[2rem] max-w-lg mx-auto bg-slate-100">
+                    <div className="double-bezel-inner p-8 bg-white rounded-[calc(2rem-0.5rem)] text-center space-y-3">
+                        <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
+                        </div>
+                        <h3 className="font-bold text-slate-800 text-base">{MSG.GROUP.NO_ACCESS_TITLE}</h3>
+                        <p className="text-sm text-slate-500 leading-relaxed">{MSG.GROUP.NO_ACCESS_DESC}</p>
+                    </div>
                 </div>
-            }
-        >
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center text-slate-500">
-                {MSG.GROUP.NO_ACCESS_DESC}
-            </div>
-        </PageWrapper>
-    ) : (
+            </PageWrapper>
+        );
+    }
+
+    return (
         <PageWrapper
             title={group ? MSG.GROUP.MEMBERS_PAGE_TITLE(group.name) : MSG.GROUP.MEMBERS_PAGE_TITLE_LOADING}
             subtitle={MSG.GROUP.MEMBERS_PAGE_SUBTITLE}
             actions={
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-2">
                     <button
                         type="button"
                         onClick={() => navigate("/groups")}
-                        className="rounded-3xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                        className="px-4 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
                     >
                         {MSG.GROUP.BTN_GROUP_LIST}
                     </button>
                     <Link
                         to={`/groups/${groupId}/links`}
-                        className="inline-flex items-center justify-center rounded-3xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+                        className="px-4 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition shadow-soft-xs"
                     >
                         {MSG.GROUP.BTN_VIEW_LINKS}
                     </Link>
                 </div>
             }
         >
-            <div className="grid gap-6 lg:grid-cols-[1fr]">
-                {loading ? (
-                    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center text-slate-500">{MSG.GROUP.LOADING}</div>
-                ) : !group ? (
-                    <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-slate-500">
-                        {MSG.GROUP.NOT_FOUND}
-                    </div>
-                ) : (
-                    <div className="space-y-6">
-                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
-                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                <div>
-                                    <h2 className="text-lg font-semibold text-slate-900">{group.name}</h2>
-                                    <p className="mt-1 text-sm text-slate-600">{MSG.GROUP.GROUP_INFO_MEMBERS(group.members?.length ?? 0)} · {MSG.GROUP.GROUP_INFO_LINKS(group.links?.length ?? 0)}</p>
-                                    {maxMembersPerGroup !== null && (
-                                        <p className="mt-1 text-xs text-blue-600">{MSG.GROUP.GROUP_INFO_LIMIT(group.members?.length ?? 0, maxMembersPerGroup)}</p>
-                                    )}
+            <div className="space-y-6 max-w-6xl mx-auto">
+                {/* Group Summary Bento Banner */}
+                {group && (
+                    <div className="double-bezel-outer p-1.5 rounded-3xl bg-slate-200/50">
+                        <div className="double-bezel-inner p-5 sm:p-6 bg-white rounded-[calc(1.5rem-0.375rem)] shadow-soft-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3.5">
+                                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-base uppercase shrink-0">
+                                    {group.name?.slice(0, 2) || "GP"}
                                 </div>
-                                <div className="rounded-3xl bg-slate-50 px-4 py-3 text-sm text-slate-700">{MSG.GROUP.GROUP_OWNER_LABEL(group.owner?.username || group.owner)}</div>
+                                <div>
+                                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">{group.name}</h2>
+                                    <p className="text-xs text-slate-500 mt-0.5">
+                                        {MSG.GROUP.GROUP_INFO_MEMBERS(group.members?.length ?? 0)} · {MSG.GROUP.GROUP_INFO_LINKS(group.links?.length ?? 0)}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto text-xs">
+                                <span className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 font-medium">
+                                    {MSG.GROUP.GROUP_OWNER_LABEL(group.owner?.username || group.owner)}
+                                </span>
+                                {maxMembersPerGroup !== null && (
+                                    <span className="px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 font-medium font-mono">
+                                        {MSG.GROUP.GROUP_INFO_LIMIT(group.members?.length ?? 0, maxMembersPerGroup)}
+                                    </span>
+                                )}
                             </div>
                         </div>
+                    </div>
+                )}
 
-                        {canManageMembers && (
-                            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                    <div>
-                                        <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">{MSG.GROUP.ADD_MEMBER_TITLE}</h3>
-                                        <p className="text-sm text-slate-600">{MSG.GROUP.ADD_MEMBER_DESC}</p>
-                                    </div>
-                                </div>
-                                <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                {/* Add Member Omni-Box (if permitted) */}
+                {canManageMembers && (
+                    <div className="double-bezel-outer p-1.5 rounded-3xl bg-slate-200/50">
+                        <form onSubmit={handleAddGroupMember} className="double-bezel-inner p-4 sm:p-5 bg-white rounded-[calc(1.5rem-0.375rem)] shadow-soft-sm space-y-3">
+                            <div>
+                                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">{MSG.GROUP.ADD_MEMBER_TITLE}</h3>
+                                <p className="text-xs text-slate-500 mt-0.5">{MSG.GROUP.ADD_MEMBER_DESC}</p>
+                            </div>
+                            <div className="flex flex-col sm:flex-row items-stretch gap-2.5">
+                                <div className="flex-1 flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-slate-900 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 mr-2.5 shrink-0">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                        <circle cx="12" cy="7" r="4" />
+                                    </svg>
                                     <input
+                                        type="text"
                                         value={memberUserId}
                                         onChange={(event) => setMemberUserId(event.target.value)}
                                         placeholder={MSG.GROUP.ADD_MEMBER_PLACEHOLDER}
-                                        className="w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                        className="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 outline-none"
                                     />
-                                    <div className="flex items-center gap-2">
-                                        <select
-                                            value={memberRole}
-                                            onChange={(event) => setMemberRole(event.target.value)}
-                                            disabled={!isOwner}
-                                            className="rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                                        >
-                                            <option value="viewer">Viewer</option>
-                                            <option value="member">Member</option>
-                                            <option value="manager">Manager</option>
-                                        </select>
-                                        <button
-                                            type="button"
-                                            onClick={handleAddGroupMember}
-                                            disabled={actionLoading}
-                                            className="rounded-3xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                        >
-                                            {MSG.GROUP.BTN_ADD_MEMBER}
-                                        </button>
-                                    </div>
                                 </div>
+                                <select
+                                    value={memberRole}
+                                    onChange={(event) => setMemberRole(event.target.value)}
+                                    disabled={!isOwner}
+                                    className="h-11 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 transition shrink-0"
+                                >
+                                    <option value="viewer">Viewer</option>
+                                    <option value="member">Member</option>
+                                    <option value="manager">Manager</option>
+                                </select>
+                                <button
+                                    type="submit"
+                                    disabled={actionLoading || !memberUserId.trim()}
+                                    className="h-11 px-5 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-xs font-semibold transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed shadow-soft-xs shrink-0 flex items-center justify-center gap-1.5"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="12" y1="5" x2="12" y2="19" />
+                                        <line x1="5" y1="12" x2="19" y2="12" />
+                                    </svg>
+                                    <span>{MSG.GROUP.BTN_ADD_MEMBER}</span>
+                                </button>
                             </div>
-                        )}
+                        </form>
+                    </div>
+                )}
 
-                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-300/10">
-                            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                <div>
-                                    <h3 className="text-lg font-semibold text-slate-900">{MSG.GROUP.MEMBERS_LIST_TITLE}</h3>
-                                    <p className="text-sm text-slate-600">{MSG.GROUP.MEMBERS_LIST_DESC}</p>
-                                </div>
+                {/* Members List Container */}
+                <div className="double-bezel-outer p-1.5 rounded-[2rem] bg-slate-200/50">
+                    <div className="double-bezel-inner p-5 sm:p-7 bg-white rounded-[calc(2rem-0.375rem)] shadow-soft-md space-y-6">
+                        {/* Section Header & Search / Sort Filter Bar */}
+                        <div className="space-y-4 pb-5 border-b border-slate-100">
+                            <div>
+                                <h3 className="text-xl font-bold tracking-tight text-slate-900">{MSG.GROUP.MEMBERS_LIST_TITLE}</h3>
+                                <p className="text-sm text-slate-500 mt-0.5">{MSG.GROUP.MEMBERS_LIST_DESC}</p>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-3">
-                                <div className="flex flex-1 min-w-full sm:min-w-0 items-center gap-2 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-2 shadow-sm shadow-slate-200/50">
+                            {/* Floating Filter Bar */}
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                                <div className="flex-1 flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-slate-900 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 mr-2.5 shrink-0">
+                                        <circle cx="11" cy="11" r="8" />
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                    </svg>
                                     <input
+                                        type="text"
                                         value={searchQuery}
                                         onChange={(event) => {
                                             const nextSearch = event.target.value;
@@ -350,46 +451,67 @@ const GroupMembersPage = () => {
                                             refreshMembers(1, nextSearch, sortBy, sortOrder);
                                         }}
                                         placeholder={MSG.GROUP.SEARCH_PLACEHOLDER}
-                                        className="w-full bg-transparent text-sm text-slate-900 outline-none"
+                                        className="w-full bg-transparent text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none"
                                     />
                                 </div>
-                                <select
-                                    value={sortBy}
-                                    onChange={(event) => {
-                                        const nextSortBy = event.target.value;
-                                        setSortBy(nextSortBy);
-                                        setCurrentPage(1);
-                                        refreshMembers(1, searchQuery, nextSortBy, sortOrder);
-                                    }}
-                                    className="rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 sm:w-auto w-full"
-                                >
-                                    <option value="username">{MSG.GROUP.SORT_USERNAME}</option>
-                                    <option value="role">{MSG.GROUP.SORT_ROLE}</option>
-                                </select>
-                                <select
-                                    value={sortOrder}
-                                    onChange={(event) => {
-                                        const nextSortOrder = event.target.value;
-                                        setSortOrder(nextSortOrder);
-                                        setCurrentPage(1);
-                                        refreshMembers(1, searchQuery, sortBy, nextSortOrder);
-                                    }}
-                                    className="rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 sm:w-auto w-full"
-                                >
-                                    <option value="asc">{MSG.GROUP.SORT_ASC}</option>
-                                    <option value="desc">{MSG.GROUP.SORT_DESC}</option>
-                                </select>
-                                <button
-                                    type="button"
-                                    onClick={() => refreshMembers(currentPage)}
-                                    className="rounded-3xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 sm:w-auto w-full"
-                                >
-                                    {MSG.GROUP.BTN_REFRESH}
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <select
+                                        value={sortBy}
+                                        onChange={(event) => {
+                                            const nextSortBy = event.target.value;
+                                            setSortBy(nextSortBy);
+                                            setCurrentPage(1);
+                                            refreshMembers(1, searchQuery, nextSortBy, sortOrder);
+                                        }}
+                                        className="h-10 flex-1 sm:flex-none rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 outline-none transition"
+                                    >
+                                        <option value="username">{MSG.GROUP.SORT_USERNAME}</option>
+                                        <option value="role">{MSG.GROUP.SORT_ROLE}</option>
+                                    </select>
+                                    <select
+                                        value={sortOrder}
+                                        onChange={(event) => {
+                                            const nextSortOrder = event.target.value;
+                                            setSortOrder(nextSortOrder);
+                                            setCurrentPage(1);
+                                            refreshMembers(1, searchQuery, sortBy, nextSortOrder);
+                                        }}
+                                        className="h-10 flex-1 sm:flex-none rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 outline-none transition"
+                                    >
+                                        <option value="asc">{MSG.GROUP.SORT_ASC}</option>
+                                        <option value="desc">{MSG.GROUP.SORT_DESC}</option>
+                                    </select>
+                                    <button
+                                        type="button"
+                                        onClick={() => refreshMembers(currentPage)}
+                                        title={MSG.GROUP.BTN_REFRESH}
+                                        className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition shrink-0"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="space-y-3">
+                        {/* Loading State */}
+                        {loading && (
+                            <div className="py-12 text-center text-slate-400 space-y-2">
+                                <div className="w-7 h-7 mx-auto border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                                <p className="text-xs font-medium">{MSG.GROUP.LOADING}</p>
+                            </div>
+                        )}
+
+                        {/* Empty / Not Found */}
+                        {!loading && members.length === 0 && (
+                            <div className="py-12 text-center text-slate-400 text-xs">
+                                {MSG.GROUP.NOT_FOUND}
+                            </div>
+                        )}
+
+                        {/* Members List Items */}
+                        {!loading && members.length > 0 && (
                             <MembersList
                                 members={members}
                                 memberRoleInputs={memberRoleInputs}
@@ -403,10 +525,11 @@ const GroupMembersPage = () => {
                                 handleUpdateMemberRole={handleUpdateMemberRole}
                                 handleRemoveMember={handleRemoveMember}
                             />
-                        </div>
+                        )}
 
+                        {/* Pagination Segmented Controller */}
                         {totalPages > 1 && (
-                            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -415,13 +538,13 @@ const GroupMembersPage = () => {
                                         refreshMembers(prevPage);
                                     }}
                                     disabled={currentPage === 1}
-                                    className="rounded-2xl bg-slate-200 px-4 py-2 text-sm text-slate-700 transition disabled:opacity-50"
+                                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                     {MSG.GROUP.BTN_PREV}
                                 </button>
-                                <div className="text-sm text-slate-600">
+                                <span className="font-mono text-slate-500">
                                     {MSG.GROUP.PAGE_INFO(currentPage, totalPages)}
-                                </div>
+                                </span>
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -430,14 +553,14 @@ const GroupMembersPage = () => {
                                         refreshMembers(nextPage);
                                     }}
                                     disabled={currentPage === totalPages}
-                                    className="rounded-2xl bg-slate-200 px-4 py-2 text-sm text-slate-700 transition disabled:opacity-50"
+                                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                     {MSG.GROUP.BTN_NEXT}
                                 </button>
                             </div>
                         )}
                     </div>
-                )}
+                </div>
             </div>
         </PageWrapper>
     );

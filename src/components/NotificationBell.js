@@ -237,6 +237,8 @@ const NotificationBell = () => {
         ref={bellRef}
         onClick={handleToggle}
         aria-label="Hộp thông báo"
+        aria-expanded={isOpen}
+        aria-haspopup="dialog"
         className="relative flex h-9 w-9 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors active:scale-95"
       >
         <svg
